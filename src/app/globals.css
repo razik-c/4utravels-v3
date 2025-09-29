@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@plugin '@tailwindcss/typography';
+@config "../../tailwind.config.js";
+
+@source "../../node_modules/nrc-next-carousel/dist";
+
+
+.my-logo {
+  font-family: var(--font-borel), cursive;
+   color: #F4F3F2;
+}
+
+body {
+  font-family: var(--font-sans), sans-serif;
+  background-color: #101010;
+}
+
+h1,h2,h3,h4,h5,h6, a, u, li, ol {
+  font-family: 'Geist', sans-serif;
+}
+
+p {
+    font-family: 'Geist', sans-serif;
+}
+
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #0a0a0a;
+  }
+}
+
+@media (prefers-color-scheme: light1) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #f2f2f2;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(11px);
+  -webkit-backdrop-filter: blur(11px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0px 0px rgba(255, 255, 255, 0);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+}
+
+.embla {
+  overflow: hidden;
+}
+.embla__container {
+  display: flex;
+}
+.embla__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+.whatsapp-ico{
+    fill: white;
+    width: 32px;
+    padding: 3px;
+    background-color: #4dc247;
+    border-radius: 50%;
+    z-index: 10;
+}
+
+
+.embla { position: relative; }
+.embla__viewport { overflow: hidden; width: 100%; }
+.embla__container { display: flex; gap: 1rem; }
+.embla__slide { flex: 0 0 90%; }               /* mobile: 1 per view */
+
+/* ≥768px (md): 2 per view */
+@media (min-width: 768px) {
+  .embla__slide { flex-basis: calc(50% - 0.5rem); }
+}
