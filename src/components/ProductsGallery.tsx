@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
-import type { EmblaCarouselType, EmblaOptionsType } from "embla-carousel";
+import type { EmblaCarouselType } from "embla-carousel";
 import Image from "next/image";
 import clsx from "clsx";
 
@@ -18,21 +18,20 @@ export default function ProductGallery({
   images: GalleryImage[];
   className?: string;
 }) {
-
+  // Cast options to the exact type expected by the hook to dodge mismatched lib types.
   const mainOptions = {
-  loop: false,
-  align: "start",
-  containScroll: "trimSnaps",
-};
-const [emblaMainRef, emblaMainApi] = useEmblaCarousel(mainOptions);
+    loop: false,
+    align: "start",
+    containScroll: "trimSnaps",
+  } as unknown as Parameters<typeof useEmblaCarousel>[0];
 
-  const thumbsOptions: EmblaOptionsType = {
+  const thumbsOptions = {
     dragFree: true,
     containScroll: "trimSnaps",
     align: "start",
-  };
+  } as unknown as Parameters<typeof useEmblaCarousel>[0];
 
-
+  const [emblaMainRef, emblaMainApi] = useEmblaCarousel(mainOptions);
   const [emblaThumbsRef, emblaThumbsApi] = useEmblaCarousel(thumbsOptions);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -50,19 +49,19 @@ const [emblaMainRef, emblaMainApi] = useEmblaCarousel(mainOptions);
   useEffect(() => {
     if (!emblaMainApi) return;
 
-    const handler = () => onSelect(emblaMainApi);
-    handler();
+    const handle = () => onSelect(emblaMainApi);
+    handle();
 
-    emblaMainApi.on("select", handler);
-    emblaMainApi.on("reInit", handler);
+    emblaMainApi.on("select", handle);
+    emblaMainApi.on("reInit", handle);
 
     return () => {
-      emblaMainApi.off?.("select", handler);
-      emblaMainApi.off?.("reInit", handler);
+      emblaMainApi.off?.("select", handle);
+      emblaMainApi.off?.("reInit", handle);
     };
   }, [emblaMainApi, onSelect]);
 
-  const scrollTo = (idx: number) => emblaMainApi?.scrollTo(idx);
+  const scrollTo = useCallback((idx: number) => emblaMainApi?.scrollTo(idx), [emblaMainApi]);
 
   return (
     <div className={clsx("w-full", className)}>
