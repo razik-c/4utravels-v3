@@ -22,6 +22,10 @@
       "@/*": ["./src/*"]
     }
   },
+    "exclude": [
+    "drizzle.config.ts",
+    "node_modules",
+    "drizzle/**"          // (if you have a drizzle folder with CLI scripts)
+  ],
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
 }
