@@ -8,6 +8,20 @@
       "when": 1759147525947,
       "tag": "0000_remarkable_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759402731083,
+      "tag": "0001_overjoyed_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759403700017,
+      "tag": "0002_motionless_raider",
+      "breakpoints": true
     }
   ]
 }

@@ -10,11 +10,11 @@ import PopularPackages from "@/components/PopularPackages";
 import WhyChoose from "@/components/WhyChooseUs";
 import WhyChooseUs from "@/components/WhyChooseUs";
 
-async function getDestinations(limit = 6) {
+async function getTransports(limit = 6) {
   return db
     .select()
     .from(tourPackages)
-    .where(eq(tourPackages.cardType, "destination"))
+    .where(eq(tourPackages.cardType, "transport"))
     .limit(limit);
 }
 async function getVertical(limit = 8) {
@@ -33,8 +33,8 @@ async function getHorizontal(limit = 6) {
 }
 
 export default async function Home() {
-  const [destinations, vertical, horizontal] = await Promise.all([
-    getDestinations(),
+  const [transport, vertical, horizontal] = await Promise.all([
+    getTransports(),
     getVertical(),
     getHorizontal(),
   ]);
@@ -44,7 +44,9 @@ export default async function Home() {
       <section className="pt-2">
         <HeroCarousel></HeroCarousel>
       </section>
-
+      <section className="py-8">
+        <PopularPackages vertical={transport}></PopularPackages>
+      </section>
       <section className="pt-8">
         <PlacesCarousel items={vertical} heading="Handpicked Packages" />
       </section>
@@ -109,9 +111,7 @@ export default async function Home() {
           ))}
         </div>
       </section>
-      <section className="py-8">
-        <PopularPackages vertical={vertical}></PopularPackages>
-      </section>
+
       <section>
         <WhyChooseUs></WhyChooseUs>
       </section>

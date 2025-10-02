@@ -24,7 +24,6 @@ export default function PopularPackagesCarousel({
   vertical: Tour[];
   seeMoreHref?: string;
 }) {
-  // ---- FIX: cast options to the hook’s first-arg type to bypass your mismatched Props typing
   const emblaOptions = {
     loop: false,
     align: 'start',
@@ -82,9 +81,9 @@ export default function PopularPackagesCarousel({
       </div>
 
       {/* Carousel */}
-      <div className="relative pt-2 md:mt-12">
+      <div className="relative pt-5 md:mt-12">
         {/* Viewport */}
-        <div className="embla px-3 sm:px-4 h-[500px] overflow-hidden" ref={emblaRef}>
+        <div className="embla px-3 sm:px-4 h-[450px] overflow-hidden" ref={emblaRef}>
           {/* Container */}
           <div className="embla__container flex gap-3 sm:gap-4 pr-6 sm:pr-8">
             {vertical.map((p) => (
@@ -95,7 +94,7 @@ export default function PopularPackagesCarousel({
                 <div className="flex h-full flex-col gap-5 rounded-lg bg-white shadow relative">
                   <Link href={`/tours/${p.slug}`} className="block">
                     <Image
-                      src={p.heroImage || '/tour.jpg'}
+                      src={p.heroImage || '/toyota.png'}
                       alt={p.title}
                       width={800}
                       height={600}
@@ -148,7 +147,7 @@ export default function PopularPackagesCarousel({
         </div>
 
         {/* Dots */}
-        <div className="mt-4 flex items-center justify-center gap-2">
+        {/* <div className="mt-4 flex items-center justify-center gap-2">
           {scrollSnaps.map((_, i) => {
             const active = i === selectedIndex;
             return (
@@ -164,7 +163,7 @@ export default function PopularPackagesCarousel({
               />
             );
           })}
-        </div>
+        </div> */}
       </div>
     </section>
   );
