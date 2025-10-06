@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import FolderDrop from "@/components/FolderDrop"; // same FolderDrop you used for tours
+import FolderDrop from "@/components/FolderDrop";
 
 type Body = {
   name: string;
@@ -13,8 +13,6 @@ type Body = {
   ratePerHour: number | string;
   ratePerDay: number | string;
   isActive?: boolean;
-
-  // images
   heroKey?: string | null;
   imageKeys?: string[];
 };
@@ -41,7 +39,7 @@ function buildKey(baseDir: string, relPath: string) {
   return dir ? `${dir}/${rel}` : rel;
 }
 
-export default function AddTransportForm({ onDone }: { onDone: () => void }) {
+export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -62,7 +60,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
     // Prepare sign payload
     const items = files.map((f) => {
       const rel = (f as any).webkitRelativePath || f.name;
-      const key = buildKey(`${baseDir}`, rel);
+      const key = buildKey(baseDir, rel);
       return { key, contentType: f.type || "application/octet-stream" };
     });
 
@@ -77,7 +75,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
     try {
       signJson = await signRes.json();
     } catch {
-      // ignore parse error
+      /* ignore parse error */
     }
     if (!signRes.ok) {
       const msg =
@@ -113,7 +111,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
     await Promise.all(
       files.map(async (f) => {
         const rel = (f as any).webkitRelativePath || f.name;
-        const key = buildKey(`${baseDir}`, rel);
+        const key = buildKey(baseDir, rel);
         const url = urlByKey.get(key);
         if (!url) throw new Error(`Missing signed URL for ${key}`);
         const put = await fetch(url, {
@@ -149,9 +147,9 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    // Slug base for folder path
-    const slugBase = slugify(name);
-    const baseDir = `transports/${slugBase}`;
+    // Folder path: transports/<slug>
+    const slugBase = slugify(name) || `transport-${Date.now()}`;
+    const baseDir = `transports/${cleanPath(slugBase)}`;
 
     // 1) Upload images first (if any)
     let imageKeys: string[] = [];
@@ -170,7 +168,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    // 2) Now create the transport via JSON
+    // 2) Create the transport
     const payload: Body = {
       name,
       makeAndModel,
@@ -182,7 +180,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
       currency: (fd.get("currency") as string) || "AED",
       ratePerHour: (fd.get("ratePerHour") as string)?.trim() || "0.00",
       ratePerDay: (fd.get("ratePerDay") as string)?.trim() || "0.00",
-      isActive: (fd.get("isActive") as string) === "on" || true,
+      isActive: (fd.get("isActive") as FormDataEntryValue) === "on",
       heroKey,
       imageKeys,
     };
@@ -232,9 +230,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
       <div className="bg-white border rounded-lg">
         <label className="flex items-center justify-between px-4 py-3">
           <div className="flex-1">
-            <div className="text-sm font-medium text-gray-900">
-              Make &amp; Model
-            </div>
+            <div className="text-sm font-medium text-gray-900">Make &amp; Model</div>
             <input
               name="makeAndModel"
               required
@@ -321,11 +317,21 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
               type="number"
               min={1}
               value={passengers}
-              onChange={(e) =>
-                setPassengers(parseInt(e.target.value || "1", 10))
-              }
+              onChange={(e) => setPassengers(parseInt(e.target.value || "1", 10))}
               className="mt-1 w-full bg-transparent outline-none"
             />
+          </div>
+        </label>
+      </div>
+
+      {/* Active */}
+      <div className="bg-white border rounded-lg">
+        <label className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <input id="isActive" name="isActive" type="checkbox" className="h-4 w-4" defaultChecked />
+            <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
+              Active
+            </label>
           </div>
         </label>
       </div>
@@ -343,7 +349,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
         </label>
       </div>
 
-      {/* Folder upload (pre-uploads to R2 before creating the transport) */}
+      {/* Folder upload */}
       <div className="bg-white border rounded-lg p-4">
         <div className="text-sm font-medium mb-2">Images / Folder (optional)</div>
         <FolderDrop
@@ -353,8 +359,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
           label="Click to select a folder or drag & drop files/folders"
         />
         <p className="text-xs text-gray-500 mt-2">
-          We upload first to R2 at <code>transports/&lt;slugified-name</code>,
-          then create the transport with the uploaded keys.
+          We upload first to R2 at <code>transports/&lt;slugified-name&gt;</code>, then save the transport with those keys.
         </p>
       </div>
 
@@ -366,7 +371,12 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
         >
           {pending ? "Uploading & Saving…" : "Save Transport"}
         </button>
-        <button type="button" onClick={onDone} className="text-gray-600 hover:underline">
+        <button
+          type="button"
+          onClick={() => onDone?.()}
+          className="text-gray-600 hover:underline"
+          disabled={pending}
+        >
           Cancel
         </button>
       </div>
