@@ -9,7 +9,7 @@ function cleanSegment(s: string) {
     .replace(/[^\w\-./]/g, '_')
 }
 
-type BatchItem = { key: string; contentType: string }
+type BatchItem = { key: string; contentType: string, dir?: string; }
 
 export async function POST(req: NextRequest) {
   let payload: { items?: BatchItem[] } | null = null
