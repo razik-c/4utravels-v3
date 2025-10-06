@@ -1,3 +1,4 @@
+import { relations, sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -9,6 +10,7 @@ import {
   text,
   serial,
   numeric,
+  char,
 } from "drizzle-orm/pg-core";
 
 export const tourPackages = pgTable("tour_packages", {
@@ -33,12 +35,46 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
+
+export const transports = pgTable("vehicles", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  name: text("name").notNull(), 
+  makeAndModel: text("make_and_model").notNull(), 
+  description: text("description"),
+
+  passengers: integer("passengers").notNull().default(4),
+
+  currency: char("currency", { length: 3 }).notNull().default("AED"),
+  ratePerHour: numeric("rate_per_hour", { precision: 12, scale: 2 }).notNull(),
+  ratePerDay: numeric("rate_per_day", { precision: 12, scale: 2 }).notNull(),
+
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const transportsRelations = relations(transports, ({ one }) => ({
+  creator: one(user, {
+    fields: [transports.createdBy],
+    references: [user.id],
+  }),
+}));
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -88,3 +124,6 @@ export const verification = pgTable("verification", {
 });
 
 export const schema = { user, account, session, verification };
+
+export type Transport = typeof transports.$inferSelect;
+export type NewTransport = typeof transports.$inferInsert;

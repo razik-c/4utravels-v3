@@ -11,8 +11,10 @@ import ProductGallery, { GalleryImage } from "@/components/ProductsGallery";
 import Itinerary, { ItineraryItem } from "@/components/Itinerary";
 import Link from "next/link";
 
+// ⬇️ Be explicit about the path you list from:
+import { listImageUrlsForPrefix, getFirstImageUrlInFolder, sanitizeKey } from "@/lib/r2";
+
 type Tour = typeof tourPackages.$inferSelect;
-// Extend with optional JSON-ish columns without using `any`
 type TourExtras = Tour & {
   galleryJson?: unknown;
   itineraryJson?: unknown;
@@ -20,47 +22,25 @@ type TourExtras = Tour & {
 
 export const revalidate = 60;
 
-// ----- Helpers
+// ----- DB
 async function getTour(slug: string): Promise<TourExtras | null> {
-  const rows = await db
-    .select()
-    .from(tourPackages)
-    .where(eq(tourPackages.slug, slug))
-    .limit(1);
-
-  // Cast to extended type without `any`
+  const rows = await db.select().from(tourPackages).where(eq(tourPackages.slug, slug)).limit(1);
   return (rows[0] as TourExtras) ?? null;
 }
 
-// Prebuild known slugs
-export async function generateStaticParams(): Promise<Array<{ slug: string }>> {
-  const rows = await db
-    .select({ slug: tourPackages.slug })
-    .from(tourPackages)
-    .limit(50);
-
-  return rows.map((r) => ({ slug: r.slug }));
-}
-
-// --- safe parsers
+// ----- Parsers
 function parseItinerary(raw?: unknown, durationDays?: number): ItineraryItem[] {
   try {
     const json = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (Array.isArray(json)) {
-      return json.map((d, i) => {
+      return json.map((d: any, i: number) => {
         const day = typeof d?.day === "number" ? d.day : i + 1;
-        const title =
-          typeof d?.title === "string" && d.title.length
-            ? d.title
-            : `Day ${i + 1}`;
-        const description =
-          typeof d?.description === "string" ? d.description : "";
+        const title = typeof d?.title === "string" && d.title.length ? d.title : `Day ${i + 1}`;
+        const description = typeof d?.description === "string" ? d.description : "";
         return { day, title, description };
       });
     }
-  } catch {
-    // fall through to default skeleton
-  }
+  } catch {}
   const days = Math.max(1, Number(durationDays ?? 1));
   return Array.from({ length: days }, (_, i) => ({
     day: i + 1,
@@ -69,56 +49,73 @@ function parseItinerary(raw?: unknown, durationDays?: number): ItineraryItem[] {
   }));
 }
 
-function buildGallery(tour: TourExtras): GalleryImage[] {
+// ----- Gallery builders
+function buildGalleryFromDb(tour: TourExtras): GalleryImage[] {
   const list: GalleryImage[] = [];
   if (tour.heroImage) list.push({ src: tour.heroImage, alt: tour.title });
 
   let more: unknown = tour.galleryJson;
   if (typeof more === "string") {
-    try {
-      more = JSON.parse(more);
-    } catch {
-      more = null;
-    }
+    try { more = JSON.parse(more); } catch { more = null; }
   }
-
   if (Array.isArray(more)) {
-    for (const m of more) {
+    for (const m of more as any[]) {
       const src = typeof m?.src === "string" ? m.src : undefined;
-      const alt =
-        typeof m?.alt === "string" ? m.alt : tour.title ?? "Gallery image";
+      const alt = typeof m?.alt === "string" ? m.alt : tour.title ?? "Gallery image";
       if (src) list.push({ src, alt });
     }
   }
-
   if (list.length === 0) list.push({ src: "/tour.jpg", alt: tour.title });
   return list;
 }
 
+async function buildGallery(slug: string, tour: TourExtras): Promise<GalleryImage[]> {
+  // ✅ Look under tours/<slug>/images explicitly
+  const prefix = `tours/${sanitizeKey(slug)}`;
+
+  try {
+    const urls = await listImageUrlsForPrefix(prefix); // returns [] if none
+    if (urls.length) {
+      // keep order predictable (1.jpg, 2.jpg, 10.jpg …)
+      urls.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      return urls.map((src, i) => ({ src, alt: `${tour.title ?? "Image"} ${i + 1}` }));
+    }
+  } catch {
+    // ignore and fall back
+  }
+
+  // last-ditch: one image by prefix
+  try {
+    const one =
+      (await getFirstImageUrlInFolder(prefix)) ||
+      (await getFirstImageUrlInFolder(`tours/${sanitizeKey(slug)}`)); // tolerate older layout
+    if (one) return [{ src: one, alt: tour.title }];
+  } catch {}
+
+  // DB/galleryJson fallback
+  return buildGalleryFromDb(tour);
+}
+
 // ----- Page
-export default async function TourPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;        // ✅ await the params
+export default async function TourPage({ params }: { params: { slug: string } }) {
+  const { slug } = params;
   const tour = await getTour(slug);
   if (!tour) notFound();
 
-  const gallery = buildGallery(tour);
+  const gallery = await buildGallery(slug, tour);
   const itineraryItems = parseItinerary(tour.itineraryJson, tour.durationDays ?? undefined);
+
+  // price formatting
+  const priceNum = Number(tour.priceAED);
+  const priceDisplay = Number.isFinite(priceNum) ? priceNum.toFixed(2) : tour.priceAED ?? "—";
 
   return (
     <main className="md:container py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="px-4 text-sm text-black/60 mb-4">
-        <span className="hover:underline">
-          <Link href="/">Home</Link>
-        </span>
+        <span className="hover:underline"><Link href="/">Home</Link></span>
         <span className="mx-2">/</span>
-        <span className="hover:underline">
-          <Link href="/tours">Tours</Link>
-        </span>
+        <span className="hover:underline"><Link href="/tours">Tours</Link></span>
         <span className="mx-2">/</span>
         <span className="text-black">{tour.title}</span>
       </nav>
@@ -133,12 +130,14 @@ export default async function TourPage({
               <span>{tour.location}</span>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <FaCalendar />
-            <span>
-              {tour.durationDays} {tour.durationDays === 1 ? "Day" : "Days"}
-            </span>
-          </div>
+          {Number.isFinite(Number(tour.durationDays)) && (
+            <div className="flex items-center gap-2">
+              <FaCalendar />
+              <span>
+                {tour.durationDays} {tour.durationDays === 1 ? "Day" : "Days"}
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <IoIosBed />
             <span>Standard Hotel</span>
@@ -167,9 +166,7 @@ export default async function TourPage({
         <aside className="col-span-12 md:col-span-4">
           <div className="rounded-lg border border-gray-200 p-5 shadow-sm sticky top-24">
             <div className="text-sm uppercase text-black/60">Starting from</div>
-            <div className="text-2xl font-bold mt-1">
-              AED {Number(tour.priceAED).toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold mt-1">AED {priceDisplay}</div>
 
             {tour.isFeatured && (
               <div className="mt-2 inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-1 rounded">
@@ -182,29 +179,27 @@ export default async function TourPage({
                 text="Book Online"
                 href={`https://wa.me/${
                   process.env.NEXT_PUBLIC_WA_NUMBER ?? ""
-                }?text=${encodeURIComponent(
-                  `Hi! I'm interested in the "${tour.title}" package.`
-                )}`}
+                }?text=${encodeURIComponent(`Hi! I'm interested in the "${tour.title}" package.`)}`}
                 className="w-full !justify-center rounded-md py-3"
               />
               <ButtonSecondary
                 href={`https://wa.me/${
                   process.env.NEXT_PUBLIC_WA_NUMBER ?? ""
-                }?text=${encodeURIComponent(
-                  `Hi! I'm interested in the "${tour.title}" package.`
-                )}`}
+                }?text=${encodeURIComponent(`Hi! I'm interested in the "${tour.title}" package.`)}`}
                 className="w-full !justify-center rounded-md"
                 text={"Whatsapp Enquiry"}
               />
             </div>
 
             <div className="mt-6 text-sm text-black/80 flex flex-col space-y-2">
-              <div className="flex items-center justify-between">
-                <span>Duration</span>
-                <span className="font-medium">
-                  {tour.durationDays} {tour.durationDays === 1 ? "Day" : "Days"}
-                </span>
-              </div>
+              {Number.isFinite(Number(tour.durationDays)) && (
+                <div className="flex items-center justify-between">
+                  <span>Duration</span>
+                  <span className="font-medium">
+                    {tour.durationDays} {tour.durationDays === 1 ? "Day" : "Days"}
+                  </span>
+                </div>
+              )}
 
               {tour.location && (
                 <div className="flex items-center justify-between">
@@ -225,29 +220,11 @@ export default async function TourPage({
           and the best rates.
         </p>
         <form className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            className="border border-gray-300 rounded px-3 py-2"
-            placeholder="Your Name"
-            name="name"
-            required
-          />
-          <input
-            className="border border-gray-300 rounded px-3 py-2"
-            placeholder="Email or Phone"
-            name="contact"
-            required
-          />
-          <textarea
-            className="md:col-span-2 border border-gray-300 rounded px-3 py-2 min-h-[120px]"
-            placeholder="Message"
-            name="message"
-          />
+          <input className="border border-gray-300 rounded px-3 py-2" placeholder="Your Name" name="name" required />
+          <input className="border border-gray-300 rounded px-3 py-2" placeholder="Email or Phone" name="contact" required />
+          <textarea className="md:col-span-2 border border-gray-300 rounded px-3 py-2 min-h-[120px]" placeholder="Message" name="message" />
           <div className="md:col-span-2">
-            <ButtonPrimary
-              text="Send Enquiry"
-              href="#"
-              className="!justify-center rounded-md"
-            />
+            <ButtonPrimary text="Send Enquiry" href="#" className="!justify-center rounded-md" />
           </div>
         </form>
       </div>

@@ -1,35 +1,35 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
-import type { EmblaCarouselType } from 'embla-carousel';
-import Image from 'next/image';
-import Link from 'next/link';
-import ButtonPrimary from '@/components/ButtonPrimary';
-import ButtonSecondary from '@/components/ButtonSecondary';
+import React, { useCallback, useEffect, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import type { EmblaCarouselType } from "embla-carousel";
+import Image from "next/image";
+import Link from "next/link";
+import ButtonPrimary from "@/components/ButtonPrimary";
+import ButtonSecondary from "@/components/ButtonSecondary";
 
 export type Tour = {
   slug: string;
   title: string;
-  shortDescription?: string | null;   // ← allow null
-  heroImage?: string | null;          // ← allow null
-  priceAED?: number | string | null;  // ← allow null
-  isFeatured?: boolean | null;        // ← allow null
+  shortDescription?: string | null; // ← allow null
+  _img?: string | null;
+  priceAED?: number | string | null; // ← allow null
+  isFeatured?: boolean | null; // ← allow null
 };
 
 export default function PopularPackagesCarousel({
   vertical,
-  seeMoreHref = '/tours',
+  seeMoreHref = "/tours/all",
 }: {
   vertical: Tour[];
   seeMoreHref?: string;
 }) {
   const emblaOptions = {
     loop: false,
-    align: 'start',
+    align: "start",
     dragFree: false,
     slidesToScroll: 1,
-    containScroll: 'keepSnaps',
+    containScroll: "keepSnaps",
   } as unknown as Parameters<typeof useEmblaCarousel>[0];
 
   const [emblaRef, emblaApi] = useEmblaCarousel(emblaOptions);
@@ -54,24 +54,26 @@ export default function PopularPackagesCarousel({
       onSelect(emblaApi);
     };
 
-    emblaApi.on('select', handleSelect);
-    emblaApi.on('reInit', handleReInit);
+    emblaApi.on("select", handleSelect);
+    emblaApi.on("reInit", handleReInit);
 
     return () => {
-      emblaApi.off?.('select', handleSelect);
-      emblaApi.off?.('reInit', handleReInit);
+      emblaApi.off?.("select", handleSelect);
+      emblaApi.off?.("reInit", handleReInit);
     };
   }, [emblaApi, onSelect]);
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-  const scrollTo = useCallback((i: number) => emblaApi?.scrollTo(i), [emblaApi]);
+  const scrollTo = useCallback(
+    (i: number) => emblaApi?.scrollTo(i),
+    [emblaApi]
+  );
 
   return (
     <section className="px-5 md:container">
-      {/* Header */}
       <div className="flex items-center justify-between px-2">
-        <h5 className="!font-bold text-center">Popular Packages</h5>
+        <h5 className="text-center">Popular Packages</h5>
         <Link
           href={seeMoreHref}
           className="inline-flex px-3 py-1.5 justify-center items-center rounded-full text-sm font-medium text-black transition-colors hover:bg-black/5"
@@ -81,9 +83,12 @@ export default function PopularPackagesCarousel({
       </div>
 
       {/* Carousel */}
-      <div className="relative pt-5 md:mt-12">
+      <div className="relative pt-5 md:mt-12 max-h-[370px]">
         {/* Viewport */}
-        <div className="embla px-3 sm:px-4 h-[450px] overflow-hidden" ref={emblaRef}>
+        <div
+          className="embla px-3 sm:px-4 h-[450px] overflow-hidden"
+          ref={emblaRef}
+        >
           {/* Container */}
           <div className="embla__container flex gap-3 sm:gap-4 pr-6 sm:pr-8">
             {vertical.map((p) => (
@@ -94,7 +99,7 @@ export default function PopularPackagesCarousel({
                 <div className="flex h-full flex-col gap-5 rounded-lg bg-white shadow relative">
                   <Link href={`/tours/${p.slug}`} className="block">
                     <Image
-                      src={p.heroImage || '/toyota.png'}
+                      src={p._img || "/toyota.png"}
                       alt={p.title}
                       width={800}
                       height={600}
@@ -117,7 +122,9 @@ export default function PopularPackagesCarousel({
 
                     <div className="mt-1 flex items-center gap-2">
                       {p.priceAED !== undefined && (
-                        <p className="!text-[16px] !text-black font-bold">AED {p.priceAED}</p>
+                        <p className="!text-[16px] !text-black font-bold">
+                          AED {p.priceAED}
+                        </p>
                       )}
                     </div>
 

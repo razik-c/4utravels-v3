@@ -5,9 +5,19 @@ import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
 import Link from "next/link";
 
-type AnyPlace = Record<string, unknown>;
+type AnyPlace = {
+  slug?: string;
+  title?: string;
+  name?: string;
+  _img?: string | null;        // server-attached first image
+  heroImage?: string | null;   // include it since you read it
+  imageUrl?: string | null;
+  img?: string | null;
+  image?: string | null;
+  [k: string]: unknown;
+};
 
-function pick<T = string>(obj: AnyPlace, keys: string[], fallback?: T): T | undefined {
+function pick<T = string>(obj: Record<string, unknown>, keys: string[], fallback?: T): T | undefined {
   for (const k of keys) {
     const v = obj?.[k];
     if (v !== undefined && v !== null && v !== "") return v as T;
@@ -17,9 +27,11 @@ function pick<T = string>(obj: AnyPlace, keys: string[], fallback?: T): T | unde
 
 function normalizePlace(p: AnyPlace) {
   const slug = pick<string>(p, ["slug"]);
-  const title = pick<string>(p, ["title", "name"], "Untitled");
-  const image = pick<string>(p, ["heroImage", "imageUrl", "img", "image"], "/tour.jpg")!;
-  return { slug, title, image };
+  const title = pick<string>(p, ["title", "name"], "Untitled")!;
+  // Prefer server `_img`, then other common fields, then placeholder
+  const image =
+    pick<string>(p, ["_img", "heroImage", "imageUrl", "img", "image"]) || "/tour.jpg";
+  return { slug, title, image }; // <- single source of truth
 }
 
 type Props = {
@@ -39,7 +51,6 @@ export default function PlacesCarousel({
 }: Props) {
   const data: AnyPlace[] = (items ?? places ?? []) as AnyPlace[];
 
-  // Fix: cast options to the hook’s parameter type to bypass your mismatched Props typing
   const emblaOptions = {
     loop,
     align: "start",
@@ -65,7 +76,7 @@ export default function PlacesCarousel({
   return (
     <div className={`embla ${className}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold">{heading}</h3>
+        <h5 className="">{heading}</h5>
         <div className="flex gap-2">
           <button
             type="button"
@@ -94,8 +105,8 @@ export default function PlacesCarousel({
             const card = (
               <div className="relative h-56 w-full rounded-xl overflow-hidden">
                 <Image
-                  src={p.image}
-                  alt={p.title!}
+                  src={p.image} // <- always defined
+                  alt={p.title}
                   fill
                   sizes="(min-width:1024px) 600px, 100vw"
                   className="object-cover"
@@ -113,7 +124,7 @@ export default function PlacesCarousel({
             return (
               <div className="embla__slide" key={`${p.slug || p.title}-${i}`}>
                 {p.slug ? (
-                  <Link href={`/tours/${p.slug}`} className="block h-full w-full" aria-label={p.title!}>
+                  <Link href={`/tours/${p.slug}`} className="block h-full w-full" aria-label={p.title}>
                     {card}
                   </Link>
                 ) : (

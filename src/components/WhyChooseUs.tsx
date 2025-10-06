@@ -22,7 +22,7 @@ export default function WhyChoose({
 }) {
   return (
     <section className={`px-4 py-10 md:py-14 ${className}`}>
-      <div className="mx-auto max-w-6xl px-4">
+      <div className="mx-auto max-w-6xl px-4 ">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
             {heading}
@@ -36,7 +36,7 @@ export default function WhyChoose({
           {reasons.map((r, i) => (
             <div
               key={`${r.title}-${i}`}
-              className="group relative rounded-xl border border-gray-200 text-black shadow-sm hover:shadow-md transition-shadow"
+              className="group relative rounded-xl text-black shadow-sm hover:shadow-md transition-shadow bg-[#fafaff]"
             >
               {/* Accent ring on hover */}
               <div className="absolute inset-0 rounded-xl ring-0 ring-indigo-500/0 group-hover:ring-2 group-hover:ring-indigo-500/20 transition" />
