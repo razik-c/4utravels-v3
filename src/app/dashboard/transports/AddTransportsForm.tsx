@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import FolderDrop from "@/components/FolderDrop";
+import FolderDrop from "@/components/FolderDrop"; // same FolderDrop you used for tours
 
 type Body = {
   name: string;
@@ -13,6 +13,7 @@ type Body = {
   ratePerHour: number | string;
   ratePerDay: number | string;
   isActive?: boolean;
+  // images
   heroKey?: string | null;
   imageKeys?: string[];
 };
@@ -39,17 +40,18 @@ function buildKey(baseDir: string, relPath: string) {
   return dir ? `${dir}/${rel}` : rel;
 }
 
-export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
+export default function AddTransportForm({ onDone }: { onDone: () => void }) {
   const router = useRouter();
+
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
+
   const [currency, setCurrency] = React.useState("AED");
   const [passengers, setPassengers] = React.useState(7);
 
   // hold selected files (from FolderDrop)
   const filesRef = React.useRef<File[]>([]);
-
   const handleFilesChange = React.useCallback((files: File[]) => {
     filesRef.current = files;
   }, []);
@@ -61,7 +63,10 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
     const items = files.map((f) => {
       const rel = (f as any).webkitRelativePath || f.name;
       const key = buildKey(baseDir, rel);
-      return { key, contentType: f.type || "application/octet-stream" };
+      return {
+        key,
+        contentType: f.type || "application/octet-stream",
+      };
     });
 
     // Sign
@@ -75,8 +80,9 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
     try {
       signJson = await signRes.json();
     } catch {
-      /* ignore parse error */
+      // ignore parse error
     }
+
     if (!signRes.ok) {
       const msg =
         (signJson && (signJson.error || signJson.detail)) ||
@@ -103,7 +109,8 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
 
     const urlByKey = new Map<string, string>();
     for (const r of normalized) {
-      if (!r?.key || !r?.url) throw new Error(`Bad signer item: ${JSON.stringify(r)}`);
+      if (!r?.key || !r?.url)
+        throw new Error(`Bad signer item: ${JSON.stringify(r)}`);
       urlByKey.set(r.key, r.url);
     }
 
@@ -114,11 +121,15 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
         const key = buildKey(baseDir, rel);
         const url = urlByKey.get(key);
         if (!url) throw new Error(`Missing signed URL for ${key}`);
+
         const put = await fetch(url, {
           method: "PUT",
-          headers: { "Content-Type": f.type || "application/octet-stream" },
+          headers: {
+            "Content-Type": f.type || "application/octet-stream",
+          },
           body: f,
         });
+
         if (!put.ok) {
           const t = await put.text().catch(() => "");
           throw new Error(`Upload failed for ${key}: ${put.status} ${t}`);
@@ -147,14 +158,13 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
       return;
     }
 
-    // Folder path: transports/<slug>
-    const slugBase = slugify(name) || `transport-${Date.now()}`;
-    const baseDir = `transports/${cleanPath(slugBase)}`;
+    // Slug base for folder path
+    const slugBase = slugify(name);
+    const baseDir = `transports/${slugBase}`;
 
     // 1) Upload images first (if any)
     let imageKeys: string[] = [];
     let heroKey: string | null = null;
-
     try {
       const files = filesRef.current || [];
       if (files.length) {
@@ -168,7 +178,7 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
       return;
     }
 
-    // 2) Create the transport
+    // 2) Now create the transport via JSON
     const payload: Body = {
       name,
       makeAndModel,
@@ -180,7 +190,8 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
       currency: (fd.get("currency") as string) || "AED",
       ratePerHour: (fd.get("ratePerHour") as string)?.trim() || "0.00",
       ratePerDay: (fd.get("ratePerDay") as string)?.trim() || "0.00",
-      isActive: (fd.get("isActive") as FormDataEntryValue) === "on",
+      // There's no checkbox in the UI; default to true
+      isActive: true,
       heroKey,
       imageKeys,
     };
@@ -230,7 +241,9 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
       <div className="bg-white border rounded-lg">
         <label className="flex items-center justify-between px-4 py-3">
           <div className="flex-1">
-            <div className="text-sm font-medium text-gray-900">Make &amp; Model</div>
+            <div className="text-sm font-medium text-gray-900">
+              Make &amp; Model
+            </div>
             <input
               name="makeAndModel"
               required
@@ -317,21 +330,11 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
               type="number"
               min={1}
               value={passengers}
-              onChange={(e) => setPassengers(parseInt(e.target.value || "1", 10))}
+              onChange={(e) =>
+                setPassengers(parseInt(e.target.value || "1", 10))
+              }
               className="mt-1 w-full bg-transparent outline-none"
             />
-          </div>
-        </label>
-      </div>
-
-      {/* Active */}
-      <div className="bg-white border rounded-lg">
-        <label className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <input id="isActive" name="isActive" type="checkbox" className="h-4 w-4" defaultChecked />
-            <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
-              Active
-            </label>
           </div>
         </label>
       </div>
@@ -349,7 +352,7 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
         </label>
       </div>
 
-      {/* Folder upload */}
+      {/* Folder upload (pre-uploads to R2 before creating the transport) */}
       <div className="bg-white border rounded-lg p-4">
         <div className="text-sm font-medium mb-2">Images / Folder (optional)</div>
         <FolderDrop
@@ -359,7 +362,8 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
           label="Click to select a folder or drag & drop files/folders"
         />
         <p className="text-xs text-gray-500 mt-2">
-          We upload first to R2 at <code>transports/&lt;slugified-name&gt;</code>, then save the transport with those keys.
+          We upload first to R2 at <code>transports/&lt;slugified-name&gt;</code>, then
+          create the transport with the uploaded keys.
         </p>
       </div>
 
@@ -373,9 +377,8 @@ export default function AddTransportForm({ onDone }: { onDone?: () => void }) {
         </button>
         <button
           type="button"
-          onClick={() => onDone?.()}
+          onClick={onDone}
           className="text-gray-600 hover:underline"
-          disabled={pending}
         >
           Cancel
         </button>

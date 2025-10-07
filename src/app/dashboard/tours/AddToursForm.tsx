@@ -26,22 +26,22 @@ function cleanPath(s: string) {
     .replace(/[^\w\-./]/g, "_");
 }
 
-/** join base directory + relative file path safely */
+/** choose a base directory per tour, e.g. "tours/<slug-or-timestamp>" */
 function buildKey(baseDir: string, relPath: string) {
   const dir = cleanPath(baseDir);
   const rel = cleanPath(relPath);
   return dir ? `${dir}/${rel}` : rel;
 }
 
-export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) {
+export default function AddTourPackageForm({ onDone }: { onDone: () => void }) {
   const router = useRouter();
+
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
 
   // hold selected files (from FolderDrop)
   const filesRef = React.useRef<File[]>([]);
-
   const handleFilesChange = React.useCallback((files: File[]) => {
     filesRef.current = files;
   }, []);
@@ -63,7 +63,7 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
       body: JSON.stringify({ items }),
     });
 
-    // Parse JSON regardless of status so we can show server error
+    // Parse JSON regardless of status so we can show the server error
     let signJson: any = null;
     try {
       signJson = await signRes.json();
@@ -77,34 +77,34 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
       throw new Error(msg);
     }
 
-    // Accept {results:[...]}, {items:[...]}, or raw array
+    // Accept any of these shapes: {results:[...]}, {items:[...]}, or raw array
     const arr =
       (Array.isArray(signJson) && signJson) ||
       signJson?.results ||
       signJson?.items;
 
     if (!Array.isArray(arr)) {
+      // Some earlier version returned { items: [{ key, signedUrl }]}
+      // Newer returns { results: [{ key, url, contentType }]}
+      // If we still don't have an array, bail with diagnostics.
       throw new Error(
         `Signing response has no iterable array. Got: ${JSON.stringify(signJson)}`
       );
     }
 
     // Normalize to { key, url }
-    const normalized: { key: string; url: string }[] = arr.map((r: any) => ({
-      key: r.key,
-      url: r.url || r.signedUrl,
-    }));
+    const normalized: { key: string; url: string }[] = arr.map((r: any) => {
+      return { key: r.key, url: r.url || r.signedUrl }; // support both fields
+    });
 
-    // validate
+    // Build a quick lookup
+    const urlByKey = new Map<string, string>();
     for (const r of normalized) {
       if (!r?.key || !r?.url) {
         throw new Error(`Bad signer item: ${JSON.stringify(r)}`);
       }
+      urlByKey.set(r.key, r.url);
     }
-
-    // Build a quick lookup (by exact key)
-    const urlByKey = new Map<string, string>();
-    for (const r of normalized) urlByKey.set(r.key, r.url);
 
     // 3) upload (parallel)
     await Promise.all(
@@ -142,6 +142,7 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
     // compute a stable base dir: slug or timestamp
     const rawTitle = (fd.get("title") as string)?.trim() || "";
     const rawSlug = (fd.get("slug") as string)?.trim() || "";
+
     const slugBase =
       rawSlug ||
       rawTitle
@@ -151,12 +152,11 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
         .slice(0, 120) ||
       `tour-${Date.now()}`;
 
-    const baseDir = `tours/${cleanPath(slugBase)}`;
+    const baseDir = `tours/${slugBase}`;
 
     // 1) upload images first (if any)
     let imageKeys: string[] = [];
     let heroKey: string | null = null;
-
     try {
       const files = filesRef.current || [];
       if (files.length) {
@@ -175,20 +175,21 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
       slug: rawSlug || undefined,
       title: rawTitle,
       shortDescription:
-        (fd.get("shortDescription") as string)?.trim() || undefined,
+        ((fd.get("shortDescription") as string) || "").trim() || undefined,
       longDescription:
-        (fd.get("longDescription") as string)?.trim() || undefined,
-      location: (fd.get("location") as string)?.trim() || undefined,
+        ((fd.get("longDescription") as string) || "").trim() || undefined,
+      location: ((fd.get("location") as string) || "").trim() || undefined,
       durationDays: (() => {
         const v = (fd.get("durationDays") as string) || "";
         return v ? Number(v) : undefined;
       })(),
       priceAED: (() => {
-        const v = (fd.get("priceAED") as string)?.trim() || "";
+        const v = ((fd.get("priceAED") as string) || "").trim();
         return v || undefined; // API accepts number|string
       })(),
       isFeatured: fd.get("isFeatured") === "on",
-      cardType: (fd.get("cardType") as Body["cardType"]) || "vertical",
+      cardType: ((fd.get("cardType") as Body["cardType"]) ||
+        "vertical") as Body["cardType"],
       heroKey,
       imageKeys,
     };
@@ -282,9 +283,7 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
         </div>
 
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">
-            Short Description
-          </label>
+          <label className="block text-sm font-medium mb-1">Short Description</label>
           <input
             name="shortDescription"
             className="w-full rounded border px-3 py-2"
@@ -316,7 +315,9 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
 
         <div className="flex items-center gap-2">
           <input id="isFeatured" name="isFeatured" type="checkbox" className="h-4 w-4" />
-          <label htmlFor="isFeatured" className="text-sm">Featured</label>
+          <label htmlFor="isFeatured" className="text-sm">
+            Featured
+          </label>
         </div>
 
         <div className="sm:col-span-2">
@@ -328,12 +329,13 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
             label="Click to select a folder or drag & drop files/folders"
           />
           <p className="text-xs text-gray-500 mt-1">
-            We’ll upload to R2 first (preserving folder paths), then create the tour with the uploaded keys.
+            We’ll upload first to R2 (preserving folder paths), then save the tour with
+            the uploaded keys.
           </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-t">
+      <div className="flex items-center gap-3 px-4 py-3 border-t">
         <button
           type="submit"
           disabled={pending}
@@ -341,16 +343,13 @@ export default function AddTourPackageForm({ onDone }: { onDone?: () => void }) 
         >
           {pending ? "Uploading & Saving…" : "Create"}
         </button>
-
         <button
           type="button"
-          onClick={() => onDone?.()}
+          onClick={onDone}
           className="text-sm text-gray-600 hover:underline"
-          disabled={pending}
         >
           Cancel
         </button>
-
         {error && <span className="text-sm text-red-600">{error}</span>}
         {success && <span className="text-sm text-emerald-700">{success}</span>}
       </div>

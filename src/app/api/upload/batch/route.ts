@@ -11,6 +11,8 @@ function cleanSegment(s: string) {
 
 type BatchItem = { key: string; contentType: string; dir?: string };
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   let payload: { items?: BatchItem[] } | null = null;
   try {
