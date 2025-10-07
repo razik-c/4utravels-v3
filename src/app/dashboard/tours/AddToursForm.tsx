@@ -326,12 +326,8 @@ export default function AddTourPackageForm({ onDone }: { onDone: () => void }) {
             name="images"
             previewLimit={6}
             onFilesChange={handleFilesChange}
-            label="Click to select a folder or drag & drop files/folders"
+            label="Click to select a folder or drag & drop files/folders" 
           />
-          <p className="text-xs text-gray-500 mt-1">
-            We’ll upload first to R2 (preserving folder paths), then save the tour with
-            the uploaded keys.
-          </p>
         </div>
       </div>
 

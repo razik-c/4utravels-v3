@@ -361,10 +361,7 @@ export default function AddTransportForm({ onDone }: { onDone: () => void }) {
           onFilesChange={handleFilesChange}
           label="Click to select a folder or drag & drop files/folders"
         />
-        <p className="text-xs text-gray-500 mt-2">
-          We upload first to R2 at <code>transports/&lt;slugified-name&gt;</code>, then
-          create the transport with the uploaded keys.
-        </p>
+  
       </div>
 
       <div className="pt-2 flex items-center gap-3">
