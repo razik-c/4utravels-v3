@@ -115,7 +115,7 @@ export default async function SearchPage({
               <Link
                 href={`/tours/${t.slug}`}
                 key={t.id}
-                className="col-span-12 sm:col-span-6 lg:col-span-4 rounded-lg border bg-white overflow-hidden hover:shadow transition-shadow"
+                className="col-span-12 sm:col-span-6 lg:col-span-4 rounded-sm shadow-sm bg-white overflow-hidden hover:shadow transition-shadow"
               >
                 <div className="relative w-full h-40">
                   <Image

@@ -91,7 +91,7 @@ export default function PopularTransportsCarousel({
         </Link>
       </div>
 
-      <div className="relative pt-5 md:mt-12 max-h-[500px]">
+      <div className="relative pt-5 md:mt-2 max-h-[500px]">
         <div className="embla px-1 !overflow-visible h-[460px]" ref={emblaRef}>
           <div className="embla__container flex gap-3 sm:gap-4 pr-6 sm:pr-8">
             {vertical.map((v) => {
@@ -102,14 +102,14 @@ export default function PopularTransportsCarousel({
                   key={v.id}
                   className="embla__slide shrink-0 basis-[90%] sm:basis-[65%] md:basis-[42%] lg:basis-[30%]"
                 >
-                  <div className="flex h-full flex-col gap-1 rounded-xl bg-white relative">
+                  <div className="flex h-full flex-col gap-1 rounded-sm bg-white shadow-sm relative">
                     <Link href={href} className="block">
                       <Image
                         src={img}
                         alt={v.name}
                         width={800}
                         height={600}
-                        className="h-[180px] w-full rounded-2xl p-2 object-cover"
+                        className="h-[180px] w-fit rounded-t-sm object-cover"
                         unoptimized
                       />
                     </Link>
@@ -123,7 +123,7 @@ export default function PopularTransportsCarousel({
                     )}
              
 
-                    <div className="flex flex-1 flex-col px-4 pb-4">
+                    <div className="flex flex-1 flex-col px-3 pt-2 pb-4">
                       <h5 className="!text-[20px] !font-semibold !text-black line-clamp-2">
                         {v.name}
                       </h5>

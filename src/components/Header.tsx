@@ -32,9 +32,9 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <nav className="py-1">
+    <nav className="py-1 bg-white shadow-sm">
       <div className="container flex justify-between items-center md:px-8 ">
-        <div className="rounded-lg flex justify-between md:justify-start w-full py-2 items-center gap-12">
+        <div className="rounded-lg flex justify-between lg:justify-start w-full py-2 items-center gap-12">
           <div className="z-50 flex items-center gap-8">
             <Link href={"/"}>
               <Image
@@ -47,20 +47,8 @@ export default function Header() {
             </Link>
 
             {/* Desktop search (basic) */}
-            <form method="GET" action="/search" className="hidden md:block">
-              <div className="bg-[#f5f5f5] px-2 relative rounded-xl flex items-center gap-2">
-                <span className="flex items-center text-gray-500 p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                  </svg>
-                </span>
-
+            <form method="GET" action="/search" className="hidden lg:block">
+              <div className="bg-[#f3f3f6] ps-4 pe-2 relative rounded-full py-1 flex items-center gap-2">
                 <input
                   name="q"
                   id="q-desktop"
@@ -72,27 +60,37 @@ export default function Header() {
 
                 <select
                   name="type"
-                  className="bg-transparent text-sm px-2 outline-none"
+                  className="bg-transparent text-sm max-w-[20px] outline-none"
                   aria-label="Result type"
                   defaultValue=""
                 >
                   <option value="">All</option>
-                  <option value="tours">Tours</option>
-                  <option value="transports">Transports</option>
                 </select>
 
                 <button
                   type="submit"
-                  className="mr-1 inline-flex items-center rounded-lg bg-black px-3 py-2 text-white hover:bg-black/90"
+                  className="mr-1 inline-flex items-center rounded-full border border-gray-400 p-2 text-black hover:bg-[#35039A] hover:text-white"
                 >
-                  Search
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    className="size-5"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                    />
+                  </svg>
                 </button>
               </div>
             </form>
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="!m-0 text-gray-600 !py-2 block"
@@ -100,24 +98,46 @@ export default function Header() {
               aria-label="Toggle menu"
             >
               {!isMenuOpen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-7">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-7"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                  />
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18 18 6M6 6l12 12"
+                  />
                 </svg>
               )}
             </button>
           </div>
 
           {/* Desktop nav links */}
-          <div className="gap-8 items-center text-[#131313] hidden md:flex">
+          <div className="gap-8 items-center text-[#000] hidden lg:flex">
             {menuItem.map((item) => (
               <Link
                 key={item.id}
                 href={item.route || ""}
-                className="no-underline text-[14px] opacity-60 hover:opacity-100"
+                className="no-underline text-[14px] hover:underline"
               >
                 {item.title}
               </Link>
@@ -126,12 +146,16 @@ export default function Header() {
         </div>
 
         {/* Right controls */}
-        <div className="md:flex gap-4 items-center text-black hidden">
+        <div className="lg:flex gap-4 items-center text-black hidden">
           {dropDownItem.map((item) =>
             item.children?.length ? (
               <Dropdown key={item.id} item={item} />
             ) : (
-              <Link key={item.id} href={item.route || ""} className="no-underline text-[14px]">
+              <Link
+                key={item.id}
+                href={item.route || ""}
+                className="no-underline text-[14px]"
+              >
                 {item.title}
               </Link>
             )
@@ -140,8 +164,19 @@ export default function Header() {
           <ButtonPrimary
             text={"Login"}
             icon={
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="size-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                />
               </svg>
             }
             href={"/sign-in"}
@@ -151,39 +186,54 @@ export default function Header() {
       </div>
 
       {/* Mobile search (basic) */}
-      <div className="container mb-4 md:hidden mt-1">
-        <form method="GET" action="/search" className="bg-white rounded-full">
-          <div className="px-2 relative rounded-xl flex items-center">
-            <span className="flex items-center text-gray-500 p-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-            </span>
+      <div className="container mb-4 lg:hidden mt-1">
+        <form method="GET" action="/search" className="">
+          <div className="bg-[#f3f3f6] ps-4 pe-2 relative rounded-full w-full py-1 flex justify-between items-center gap-2">
             <input
               name="q"
-              id="q-mobile"
-              className="border-white outline-none border-0 w-full rounded-xl px-2 py-4"
+              id="q-desktop"
+              className="border-0 bg-transparent outline-none w-[250px] rounded-xl px-1 py-3"
               type="text"
               placeholder="Search tours & transports"
               aria-label="Search"
             />
-            <select
-              name="type"
-              className="bg-transparent text-sm pr-2 outline-none"
-              aria-label="Result type"
-              defaultValue=""
-            >
-              <option value="">All</option>
-              <option value="tours">Tours</option>
-              <option value="transports">Transports</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                name="type"
+                className="bg-transparent text-sm max-w-[20px] outline-none"
+                aria-label="Result type"
+                defaultValue=""
+              >
+                <option value="">All</option>
+              </select>
+
+              <button
+                type="submit"
+                className="mr-1 inline-flex items-center rounded-full border border-gray-400 p-2 text-black hover:bg-[#35039A] hover:text-white"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                  className="size-5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </form>
       </div>
 
       {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden relative bg-white border-t border-gray-200 z-50">
+        <div className="lg:hidden relative bg-white border-t border-gray-200 z-50">
           <div className="flex flex-col p-4 gap-4">
             {menuItem.map((item) => (
               <Link
@@ -197,7 +247,11 @@ export default function Header() {
             ))}
 
             <div className="flex flex-col gap-2 mt-4">
-              <ButtonPrimary text="Login" href="/sign-in" className="w-full justify-center py-3" />
+              <ButtonPrimary
+                text="Login"
+                href="/sign-in"
+                className="w-full justify-center py-3"
+              />
               <ButtonSecondary text="Sign Up" href="" />
             </div>
           </div>

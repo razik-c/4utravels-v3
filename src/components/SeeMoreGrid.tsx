@@ -68,9 +68,9 @@ export default function SeeMoreGrid({
             return (
               <div
                 key={`tour-${t.id}`}
-                className="col-span-12 sm:col-span-6 lg:col-span-4"
+                className="col-span-12 sm:col-span-6 lg:col-span-5"
               >
-                <div className="flex h-full flex-col gap-1 rounded-xl bg-white relative">
+                <div className="flex h-full flex-col gap-1 rounded-sm bg-white relative">
                   {/* Optional top-left 'Popular' ribbon to mirror the placement style */}
                   {t.isFeatured && (
                     <div className="absolute top-0 w-full px-3">
@@ -137,9 +137,9 @@ export default function SeeMoreGrid({
           return (
             <div
               key={`veh-${v.id}`}
-              className="col-span-12 sm:col-span-6 lg:col-span-4"
+              className="col-span-12 sm:col-span-6 lg:col-span-3"
             >
-              <div className="flex h-full flex-col gap-1 rounded-xl bg-white relative">
+              <div className="flex h-full flex-col gap-1 rounded-sm shadow-sm bg-white relative">
                 {!isActive && (
                   <div className="absolute top-0 w-full px-3">
                     <div className="mt-4 w-fit rounded bg-gray-100 px-2 py-1 !text-[10px] font-bold uppercase text-gray-700">
@@ -154,12 +154,12 @@ export default function SeeMoreGrid({
                     alt={v.name}
                     width={1200}
                     height={800}
-                    className="h-[180px] w-full rounded-2xl p-2 object-cover"
+                    className="h-[180px] w-full rounded-t-sm object-cover"
                     unoptimized
                   />
                 </Link>
 
-                <div className="flex flex-1 flex-col px-4 pb-4">
+                <div className="flex flex-1 flex-col px-4 pt-2 pb-4">
                   <h5 className="!text-[20px] !font-semibold !text-black line-clamp-2">
                     {v.name}
                   </h5>

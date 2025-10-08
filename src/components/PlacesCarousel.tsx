@@ -45,7 +45,7 @@ type Props = {
 export default function PlacesCarousel({
   items,
   places,
-  className = "px-5",
+  className = "px-5 md:px-0",
   heading = "Popular Places",
   loop = false,
 }: Props) {
@@ -103,7 +103,7 @@ export default function PlacesCarousel({
             const p = normalizePlace(raw);
 
             const card = (
-              <div className="relative h-56 w-full rounded-xl overflow-hidden">
+              <div className="relative h-56 w-full rounded-sm overflow-hidden">
                 <Image
                   src={p.image} // <- always defined
                   alt={p.title}

@@ -36,7 +36,7 @@ export default function WhyChoose({
           {reasons.map((r, i) => (
             <div
               key={`${r.title}-${i}`}
-              className="group relative rounded-xl text-black shadow-sm hover:shadow-md transition-shadow bg-[#fafaff]"
+              className="group relative rounded-xl text-black shadow-sm hover:shadow-md transition-shadow bg-white"
             >
               {/* Accent ring on hover */}
               <div className="absolute inset-0 rounded-xl ring-0 ring-indigo-500/0 group-hover:ring-2 group-hover:ring-indigo-500/20 transition" />

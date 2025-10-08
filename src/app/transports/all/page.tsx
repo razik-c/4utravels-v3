@@ -53,7 +53,6 @@ export default async function TransportsSeeMorePage({
         heading="All Transports"
       />
 
-      {/* Pager (very basic) */}
       <div className="mt-8 px-5 md:container flex items-center justify-between">
         <a
           href={`?page=${Math.max(1, page - 1)}`}

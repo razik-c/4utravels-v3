@@ -73,7 +73,7 @@ export default function ProductGallery({
               style={{ flex: "0 0 100%" }}
               key={`${img.src}-${i}`}
             >
-              <div className="relative w-full overflow-hidden rounded-xl h-[42vh] md:h-[55vh]">
+              <div className="relative w-full overflow-hidden rounded-sm h-[42vh] md:h-[55vh]">
                 <Image
                   src={img.src}
                   alt={img.alt || `Image ${i + 1}`}
@@ -96,7 +96,7 @@ export default function ProductGallery({
               key={`${img.src}-thumb-${i}`}
               onClick={() => scrollTo(i)}
               className={clsx(
-                "group relative overflow-hidden rounded-lg border",
+                "group relative overflow-hidden rounded-sm border",
                 selectedIndex === i
                   ? "border-black dark:border-white"
                   : "border-transparent"

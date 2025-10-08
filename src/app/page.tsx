@@ -96,52 +96,51 @@ export default async function Home() {
         <PopularTransportsCarousel vertical={vehiclesImg as any} />
       </section>
 
-      <section
-        className="px-6 md:container"
-        style={{ overflow: "hidden" }}
-      >
+      <section className="px-6 md:container">
         <div className="flex items-center justify-between">
           <h5 className="!font-bold text-center">Top Destinations</h5>
           <button className="inline-flex px-2 py-1 rounded-full text-sm font-medium text-black transition-colors">
             See More
           </button>
         </div>
+        <div className="overflow-x-hidden">
+          <div className="grid grid-cols-12 pt-2 mt-4 gap-4]">
+            {verticalToursImg.map((p: any) => (
+              <div key={p.slug} className="col-span-12 md:col-span-6 lg:col-span-4 relative">
+                <div className="flex bg-white rounded-sm shadow-sm h-full">
+                  <div className="max-w-[160px] h-full">
+                    <Link href={`/tours/${p.slug}`} className="block h-full">
+                      <Image
+                        src={p._img ?? "/tour.jpg"}
+                        alt={p.title}
+                        width={600}
+                        height={600}
+                        className="w-full h-[120px] object-cover rounded-l-sm"
+                      />
+                    </Link>
+                  </div>
 
-        <div className="grid grid-cols-12 pt-2 mt-4 md:mt-12 gap-4">
-          {verticalToursImg.map((p: any) => (
-            <div key={p.slug} className="col-span-12 md:col-span-4 relative">
-              <div className="flex bg-white rounded-lg shadow-md h-full overflow-hidden">
-                <div className="w-1/2 h-full">
-                  <Link href={`/tours/${p.slug}`} className="block h-full">
-                    <Image
-                      src={p._img ?? "/tour.jpg"}
-                      alt={p.title}
-                      width={600}
-                      height={600}
-                      className="w-full h-[120px] object-cover rounded-l-lg"
-                    />
-                  </Link>
-                </div>
-
-                <div className="relative px-4 py-4 flex flex-col justify-between flex-1">
-                  <div>
-                    <h6 className="!font-semibold !text-[16px]">{p.title}</h6>
-                    <div className="flex items-center gap-2 mt-1">
-                      <p className="!text-[14px]">AED {p.priceAED}*</p>
+                  <div className="relative px-4 py-4 flex flex-col justify-between flex-1">
+                    <div>
+                      <h6 className="!font-semibold !text-[18px]">{p.title}</h6>
+                      <p className="!text-[16px]">AED {p.priceAED}*</p>
+                      <p className="!text-[14px]">{p.shortDescription}</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="pt-8">
-        <PlacesCarousel
-          items={horizontalToursImg}
-          heading="Handpicked Packages"
-        />
+        <div className="md:container">
+          <PlacesCarousel
+            items={horizontalToursImg}
+            heading="Handpicked Packages"
+          />
+        </div>
       </section>
 
       <section>
