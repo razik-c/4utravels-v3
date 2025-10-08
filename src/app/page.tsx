@@ -88,7 +88,7 @@ export default async function Home() {
 
   return (
     <main>
-      <section className="pt-2">
+      <section className="pt-4">
         <HeroCarousel />
       </section>
 
