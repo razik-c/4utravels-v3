@@ -1,19 +1,28 @@
-// app/page.tsx (or app/(site)/page.tsx depending on your layout)
+// app/page.tsx
+export const runtime = "nodejs"; // ensure Node runtime (not Edge)
+export const dynamic = "force-dynamic"; // no static rendering
+export const revalidate = 0;
+
 import Image from "next/image";
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
+
 import HeroCarousel from "@/components/HeroCarousel";
-import PlacesCarousel from "@/components/PlacesCarousel";
-import PopularPackages from "@/components/PopularPackages";
 import PopularTransportsCarousel from "@/components/PopularTransportsCarousel";
 import WhyChooseUs from "@/components/WhyChooseUs";
+import ButtonPrimary from "@/components/ButtonPrimary";
 
 import { db } from "@/db";
-import { tourPackages, transports } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { getFirstImageUrlInFolder, sanitizeKey } from "@/lib/r2";
+import { products, productImages } from "@/db/schema";
+import { eq, desc, inArray } from "drizzle-orm";
+import {
+  getFirstImageUrlInFolder,
+  sanitizeKey,
+  publicUrlForKey,
+} from "@/lib/r2";
+import SafeImage from "@/components/safeImage";
 
-type TourRow = typeof tourPackages.$inferSelect & { _img?: string | null };
-type TransportRow = typeof transports.$inferSelect & { _img?: string | null };
+type ProductRow = typeof products.$inferSelect & { _img?: string | null };
 
 function slugify(s: string) {
   return String(s || "")
@@ -23,123 +32,212 @@ function slugify(s: string) {
     .slice(0, 120);
 }
 
-// ---- Data helpers ----
-async function getToursByType(type: "vertical" | "horizontal", limit: number) {
-  return db
+// Get ALL tours (no template/status filter). We’ll split later.
+async function getTours(limit: number) {
+  noStore();
+  const rows = await db
     .select()
-    .from(tourPackages)
-    .where(eq(tourPackages.cardType, type))
-    .orderBy(desc(tourPackages.createdAt))
+    .from(products)
+    .where(eq(products.type, "tour"))
+    .orderBy(desc(products.createdAt))
     .limit(limit);
+
+  console.log("[home] tours fetched:", rows.length);
+  return rows;
 }
 
-async function attachTourThumb(rows: TourRow[]): Promise<TourRow[]> {
-  return Promise.all(
-    rows.map(async (t) => {
-      const bySlug = `tours/${sanitizeKey(t.slug || slugify(t.title || ""))}`;
-      const img1 = await getFirstImageUrlInFolder(bySlug);
-      if (img1) return { ...t, _img: img1 };
+async function attachTourHero(rows: ProductRow[]): Promise<ProductRow[]> {
+  if (!rows.length) return rows;
 
-      const byId = `tours/${sanitizeKey(String(t.id))}`;
-      const img2 = await getFirstImageUrlInFolder(byId);
-      return { ...t, _img: img2 || null };
-    })
-  );
-}
+  const heroById = new Map<string, string>();
 
-async function getTransports(limit: number) {
-  return db
-    .select()
-    .from(transports)
-    .orderBy(desc(transports.createdAt))
-    .limit(limit);
-}
+  // 1) heroKey → direct URL
+  for (const r of rows) {
+    if (r.heroKey) {
+      const u = publicUrlForKey(r.heroKey);
+      if (u) heroById.set(r.id, u);
+    }
+  }
 
-async function attachTransportThumb(
-  rows: TransportRow[]
-): Promise<TransportRow[]> {
-  return Promise.all(
-    rows.map(async (r) => {
-      const byName = `transports/${sanitizeKey(slugify(r.name || ""))}`;
-      const img1 = await getFirstImageUrlInFolder(byName);
-      if (img1) return { ...r, _img: img1 };
+  // 2) product_images fallback
+  const needIds = rows.filter((r) => !heroById.has(r.id)).map((r) => r.id);
+  if (needIds.length) {
+    noStore();
+    const imgs = await db
+      .select({
+        productId: productImages.productId,
+        r2Key: productImages.r2Key,
+        isHero: productImages.isHero,
+        pos: productImages.position,
+      })
+      .from(productImages)
+      .where(inArray(productImages.productId, needIds));
 
-      const byId = `transports/${sanitizeKey(String(r.id))}`;
-      const img2 = await getFirstImageUrlInFolder(byId);
-      return { ...r, _img: img2 || null };
-    })
-  );
+    const best = new Map<string, { r2Key: string; score: number }>();
+    for (const im of imgs) {
+      const score = im.isHero ? -1 : im.pos ?? 9999;
+      const cur = best.get(im.productId);
+      if (!cur || score < cur.score)
+        best.set(im.productId, { r2Key: im.r2Key, score });
+    }
+    for (const [pid, val] of best) {
+      const u = publicUrlForKey(val.r2Key);
+      if (u) heroById.set(pid, u);
+    }
+  }
+
+  // 3) R2 fallback
+  const out: ProductRow[] = [];
+  for (const r of rows) {
+    let url = heroById.get(r.id) || null;
+    if (!url) {
+      const bySlug = `tours/${sanitizeKey(r.slug || slugify(r.name || ""))}`;
+      url = (await getFirstImageUrlInFolder(bySlug)) || null;
+    }
+    if (!url) {
+      const byId = `tours/${sanitizeKey(String(r.id))}`;
+      url = (await getFirstImageUrlInFolder(byId)) || null;
+    }
+    out.push({ ...r, _img: url });
+  }
+
+  return out;
 }
 
 export default async function Home() {
-  const [verticalTours, horizontalTours, vehicles] = await Promise.all([
-    getToursByType("vertical", 8),
-    getToursByType("horizontal", 6),
-    getTransports(8),
-  ]);
+  const tours = await getTours(24);
+  const toursWithImg = await attachTourHero(tours as ProductRow[]);
 
-  const [verticalToursImg, horizontalToursImg, vehiclesImg] = await Promise.all(
-    [
-      attachTourThumb(verticalTours as TourRow[]),
-      attachTourThumb(horizontalTours as TourRow[]),
-      attachTransportThumb(vehicles as TransportRow[]),
-    ]
-  );
+  // ✅ show all tours (ignore template)
+  const allToursImg = toursWithImg.slice(0, 12);
 
   return (
     <main>
-      <section className="pt-4">
+      <section>
         <HeroCarousel />
       </section>
 
-      <section className="pt-8">
-        <PopularTransportsCarousel vertical={vehiclesImg as any} />
-      </section>
+      {/* --- Our Services --- */}
+      <section>
+        <div className="container mt-8">
+          <div className="flex items-center justify-center lg:justify-between">
+            <h5 className="text-center">Our Services</h5>
+          </div>
 
-      <section className="px-6 md:container">
-        <div className="flex items-center justify-between">
-          <h5 className="!font-bold text-center">Top Destinations</h5>
-          <button className="inline-flex px-2 py-1 rounded-full text-sm font-medium text-black transition-colors">
-            See More
-          </button>
-        </div>
-        <div className="overflow-x-hidden">
-          <div className="grid grid-cols-12 pt-2 mt-4 gap-4]">
-            {verticalToursImg.map((p: any) => (
-              <div key={p.slug} className="col-span-12 md:col-span-6 lg:col-span-4 relative">
-                <div className="flex bg-white rounded-sm shadow-sm h-full">
-                  <div className="max-w-[160px] h-full">
-                    <Link href={`/tours/${p.slug}`} className="block h-full">
-                      <Image
-                        src={p._img ?? "/tour.jpg"}
-                        alt={p.title}
-                        width={600}
-                        height={600}
-                        className="w-full h-[120px] object-cover rounded-l-sm"
-                      />
-                    </Link>
-                  </div>
-
-                  <div className="relative px-4 py-4 flex flex-col justify-between flex-1">
-                    <div>
-                      <h6 className="!font-semibold !text-[18px]">{p.title}</h6>
-                      <p className="!text-[16px]">AED {p.priceAED}*</p>
-                      <p className="!text-[14px]">{p.shortDescription}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="grid grid-cols-12 mt-5 gap-5">
+            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
+              <Image src={"/vehicle.png"} alt="" width={100} height={100} />
+              <h6 className="mt-4">Transportations</h6>
+            </div>
+            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
+              <Image src={"/visa.png"} alt="" width={100} height={100} />
+              <h6 className="mt-4">Visa Services</h6>
+            </div>
+            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
+              <Image src={"/holiday.png"} alt="" width={100} height={100} />
+              <h6 className="mt-4">Tour Packages</h6>
+            </div>
+            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
+              <Image src={"/plane.png"} alt="" width={100} height={100} />
+              <h6 className="mt-4">Ticketing</h6>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="pt-8">
-        <div className="md:container">
-          <PlacesCarousel
-            items={horizontalToursImg}
-            heading="Handpicked Packages"
-          />
+        <PopularTransportsCarousel />
+      </section>
+
+      {/* --- Packages (all tours) --- */}
+      <section className="px-6 md:container mt-4 md:mt-8">
+        <div className="flex items-center justify-between">
+          <h5 className="text-center">Packages</h5>
+          <Link
+            href={"/tours/all"}
+            className="inline-flex justify-center items-center rounded-full text-sm font-medium text-black transition-colors hover:underline"
+          >
+            See More
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-12 pt-2 mt-4 gap-4">
+          {allToursImg.map((p) => {
+            const href = `/tours/${p.slug}`;
+            const origin =
+              typeof window !== "undefined" ? window.location.origin : "";
+            const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER?.replace(
+              /[^\d]/g,
+              ""
+            );
+            const waEnabled = !!WA_NUMBER;
+
+            const msg =
+              `Hello! I'm interested in this tour package:\n\n` +
+              `Name: ${p.name}\n` +
+              (p.location ? `Location: ${p.location}\n` : "") +
+              `Price: AED ${p.priceFrom ?? "0.00"}\n` +
+              `Link: ${origin}${href}\n` +
+              `\nI'd like to know more details or book this tour.`;
+
+            const waLink = waEnabled
+              ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`
+              : href;
+
+            return (
+              <div
+                key={p.slug}
+                className="col-span-12 md:col-span-6 lg:col-span-3 flex"
+              >
+                <div className="flex flex-col flex-1 bg-white border-2 border-gray-200 p-2 rounded-lg">
+                  <Link href={href}>
+                    <SafeImage
+                      src={p._img ?? "/tour.jpg"}
+                      alt={p.name}
+                      width={300}
+                      height={400}
+                      className="w-full object-cover rounded-md h-[200px]"
+                    />
+                  </Link>
+
+                  <div className="flex flex-col flex-1 p-2">
+                    <div className="flex items-center justify-between">
+                      <h6>{p.name}</h6>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-1">
+                      <p>
+                        <span className="text-[4px]">AED </span>
+                        {p.priceFrom ?? "0.00"}
+                      </p>
+                      <p className="!text-[16px]">{p.location ?? ""}</p>
+                    </div>
+
+                    <div className="mt-auto flex gap-2 items-center pt-4">
+                      <ButtonPrimary
+                        className="w-full !justify-center rounded-md text-center"
+                        text={waEnabled ? "Book on WhatsApp" : "Book Tour"}
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                      <div className="flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          className="w-5 h-5 text-yellow-400 mr-1"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.95a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.36 2.44a1 1 0 00-.364 1.118l1.287 3.95c.3.922-.755 1.688-1.54 1.118l-3.36-2.44a1 1 0 00-1.175 0l-3.36 2.44c-.785.57-1.84-.196-1.54-1.118l1.287-3.95a1 1 0 00-.364-1.118l-3.36-2.44c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.95z" />
+                        </svg>
+                        <p>{(p as any).rating ?? "4.9"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

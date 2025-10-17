@@ -67,7 +67,7 @@ async function buildGallery(t: Transport): Promise<GalleryImage[]> {
   if (single) return [{ src: single, alt: t.name }];
 
   // Placeholder
-  return [{ src: "/vehicle-placeholder.jpg", alt: t.name }];
+  return [{ src: "/preview-img.png", alt: t.name }];
 }
 
 // ----- Utils

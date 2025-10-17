@@ -16,7 +16,7 @@ body {
   background-color: #101010;
 }
 
-h1,h2,h3,h4,h5,h6, a, u, li, ol {
+h1,h2,h3,h4,h5,h6, a, u, li, ol, button {
   font-family: 'Geist', sans-serif;
 }
 
@@ -139,13 +139,13 @@ body {
 /* Desktop (≥1280px) */
 @media (min-width: 1280px) {
   .embla__slide {
-    flex: 0 0 20%;
+    flex: 0 0 25%;
   }
 }
 
 /* Large / Widescreen (≥1536px) */
 @media (min-width: 1536px) {
   .embla__slide {
-    flex: 0 0 20.6667%;
+  flex: 0 0 25%;
   }
 }

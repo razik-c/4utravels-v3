@@ -65,9 +65,8 @@ export default function MobilePromoCarousel() {
 
   return (
     <section>
-      <div className="w-full space-y-10 container mt-2 hidden lg:block">
-        {/* === Top Big Card === */}
-        <div className="relative h-[420px] rounded-sm overflow-hidden bg-gradient-to-r from-gray-50 to-white">
+      <div className="w-full space-y-10 ">
+        <div className="relative h-[420px] overflow-hidden bg-gradient-to-r from-gray-50 to-white">
           <Image
             src="/tour.jpg"
             alt="Premium Transport Services"
@@ -77,7 +76,7 @@ export default function MobilePromoCarousel() {
           />
           <div className="absolute inset-0 bg-black/40"></div>
 
-          <div className="absolute inset-0 flex flex-col justify-center px-16 text-white">
+          <div className="absolute inset-0 flex flex-col justify-center px-5 md:px-16 text-white md:container">
             <h2 className="text-4xl font-bold mb-4 leading-tight max-w-2xl">
               The Best Transport Services You Can Rely On
             </h2>
@@ -96,7 +95,7 @@ export default function MobilePromoCarousel() {
         </div>
 
         {/* === Bottom Slider Section === */}
-        <div className="overflow-hidden min-h-[250px]" ref={emblaRef}>
+        {/* <div className="overflow-hidden min-h-[250px] hidden lg:block container" ref={emblaRef}>
           <div className="flex gap-6">
             {slides.map((s, i) => (
               <article
@@ -199,7 +198,7 @@ export default function MobilePromoCarousel() {
               />
             );
           })}
-        </div>
+        </div> */}
       </div>
     </section>
   );

@@ -70,7 +70,7 @@ async function searchTransportsBasic(q?: string) {
     base: "transports",
     preferId: true,
   });
-  return withImg.map(r => ({ ...r, _img: r._img ?? "/vehicle-placeholder.jpg" }));
+  return withImg.map(r => ({ ...r, _img: r._img ?? "/preview-img.png" }));
 }
 
 /* ---------- UI ---------- */
@@ -151,7 +151,7 @@ export default async function SearchPage({
               >
                 <div className="relative w-full h-40">
                   <Image
-                    src={v._img ?? "/vehicle-placeholder.jpg"}
+                    src={v._img ?? "/preview-img.png"}
                     alt={v.name}
                     fill
                     className="object-cover"

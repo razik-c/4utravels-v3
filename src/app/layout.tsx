@@ -40,7 +40,7 @@ export default function RootLayout({
 
         <body className="antialiased  text-[#030303]">
           <div className="grid grid-cols-12">
-            <div className="col-span-12 h-fit p-4 m-4 rounded-lg bg-[#fafaff]">
+            {/* <div className="col-span-12 h-fit p-4 m-4 rounded-lg bg-[#fafaff]">
               <div className="flex justify-between items-center">
                 <Link href={"/"}>
                   <Image
@@ -52,9 +52,9 @@ export default function RootLayout({
                   />
                 </Link>
               </div>
-            </div>
+            </div> */}
             <Sidebar />
-            <main className="bg-[#fafaff] mx-8 rounded-lg col-span-10">
+            <main className="bg-[#f4f7fb] rounded-lg col-span-10">
               {children}
             </main>
           </div>

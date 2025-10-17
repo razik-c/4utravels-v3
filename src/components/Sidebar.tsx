@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV = [
   {
     href: "/dashboard",
-    label: "Overview",
+    label: "Dashboard",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -20,8 +20,8 @@ const NAV = [
     ),
   },
   {
-    href: "/dashboard/transports",
-    label: "Transports",
+    href: "/dashboard/visa",
+    label: "Add Visa Details",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -35,9 +35,10 @@ const NAV = [
       </svg>
     ),
   },
-  {
-    href: "/dashboard/tours",
-    label: "Tours",
+
+   {
+    href: "/dashboard/products",
+    label: "Add Products",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -45,15 +46,13 @@ const NAV = [
         fill="currentColor"
         className="size-5"
       >
-        <path d="M15.75 8.25a.75.75 0 0 1 .75.75c0 1.12-.492 2.126-1.27 2.812a.75.75 0 1 1-.992-1.124A2.243 2.243 0 0 0 15 9a.75.75 0 0 1 .75-.75Z" />
-        <path
-          fillRule="evenodd"
-          d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM4.575 15.6a8.25 8.25 0 0 0 9.348 4.425 1.966 1.966 0 0 0-1.84-1.275.983.983 0 0 1-.97-.822l-.073-.437c-.094-.565.25-1.11.8-1.267l.99-.282c.427-.123.783-.418.982-.816l.036-.073a1.453 1.453 0 0 1 2.328-.377L16.5 15h.628a2.25 2.25 0 0 1 1.983 1.186 8.25 8.25 0 0 0-6.345-12.4c.044.262.18.503.389.676l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 0 1-1.652.928l-.679-.906a1.125 1.125 0 0 0-1.906.172L4.575 15.6Z"
-          clipRule="evenodd"
-        />
+        <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z" />
+        <path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z" />
+        <path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" />
       </svg>
     ),
   },
+ 
   {
     href: "/dashboard/settings",
     label: "Settings",
@@ -83,7 +82,8 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="col-span-2 mx-4 w-full h-[750px] rounded-lg bg-[#fafaff] pt-4">
+    <aside className="col-span-2 border-r-2 border-gray-200 w-full bg-[#fafaff] pt-4 h-screen prose md:prose-tablet lg:prose-desktop px-2">
+      <h4 className="ms-4 mb-4">4U Travels Dashboard</h4>
       <nav className="flex flex-col gap-2">
         {NAV.map((item) => {
           const active = isActive(item.href);
@@ -91,9 +91,9 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 font-medium px-4 py-2 rounded-md transition-colors ${
+              className={`flex items-center gap-3 font-medium px-4 py-2 transition-colors ${
                 active
-                  ? " bg-[#35039A] text-white mx-2 py-3"
+                  ? " bg-[#35039A] text-white mx-2 py-2 rounded-md"
                   : "text-[currentColor] hover:bg-[#eef0f2] mx-2"
               }`}
             >

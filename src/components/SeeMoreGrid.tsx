@@ -6,13 +6,16 @@ import ButtonPrimary from "@/components/ButtonPrimary";
 import ButtonSecondary from "@/components/ButtonSecondary";
 
 type TourCard = {
-  id: number;
+  id: number | string;
   slug: string;
-  title: string;
+  title?: string;
+  name?: string; // in case your products-based tours use 'name'
   shortDescription?: string | null;
-  priceAED?: number | string | null;
+  priceAED?: number | string | null; // legacy
+  priceFrom?: number | string | null; // products table
   isFeatured?: boolean | null;
   _img?: string | null;
+  location?: string | null;
 };
 
 type TransportCard = {
@@ -41,6 +44,16 @@ function fmtMoney(v: number | string | null | undefined, ccy?: string | null) {
   return `${(ccy || "AED").toUpperCase()} ${num.toLocaleString()}`;
 }
 
+function coalesceTourName(t: TourCard) {
+  return t.title || t.name || "Untitled";
+}
+
+function coalesceTourPrice(t: TourCard) {
+  // prefer new products.priceFrom, fallback to legacy priceAED
+  const raw = t.priceFrom ?? t.priceAED ?? null;
+  return raw;
+}
+
 export default function SeeMoreGrid({
   items,
   mode, // "tours" | "transports"
@@ -60,21 +73,25 @@ export default function SeeMoreGrid({
 
       <div className="mt-6 grid grid-cols-12 gap-4">
         {items.map((it) => {
-          // TOURS
+          // ---------- TOURS ----------
           if (mode === "tours" && !isTransport(it)) {
             const t = it as TourCard;
             const href = `/tours/${t.slug}`;
             const img = t._img || "/tour.jpg";
+            const title = coalesceTourName(t);
+            const price = coalesceTourPrice(t);
+
             return (
               <div
                 key={`tour-${t.id}`}
-                className="col-span-12 sm:col-span-6 lg:col-span-5"
+                className="col-span-12 sm:col-span-6 lg:col-span-3 flex"
               >
-                <div className="flex h-full flex-col gap-1 rounded-sm bg-white relative">
-                  {/* Optional top-left 'Popular' ribbon to mirror the placement style */}
+                {/* Equal-height card */}
+                <div className="flex flex-col flex-1 rounded-md border border-gray-200 bg-white">
+                  {/* Optional 'Popular' badge */}
                   {t.isFeatured && (
-                    <div className="absolute top-0 w-full px-3">
-                      <div className="mt-4 w-fit rounded bg-purple-100 px-2 py-1 !text-[10px] font-bold uppercase text-purple-800">
+                    <div className="px-3 pt-3">
+                      <div className="w-fit rounded bg-purple-100 px-2 py-1 text-[10px] font-bold uppercase text-purple-800">
                         Popular
                       </div>
                     </div>
@@ -83,34 +100,45 @@ export default function SeeMoreGrid({
                   <Link href={href} className="block">
                     <Image
                       src={img}
-                      alt={t.title}
+                      alt={title}
                       width={1200}
                       height={800}
-                      className="h-[180px] w-full rounded-2xl p-2 object-cover"
+                      className="h-[180px] w-full rounded-t-md object-cover"
                       unoptimized
+                      onError={(e) => {
+                        const el = e.currentTarget as HTMLImageElement;
+                        if (!el.src.endsWith("/tour.jpg")) el.src = "/tour.jpg";
+                      }}
                     />
                   </Link>
 
-                  <div className="flex flex-1 flex-col px-4 pb-4">
-                    <h5 className="!text-[20px] !font-semibold !text-black line-clamp-2">
-                      {t.title}
+                  <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+                    <h5 className="text-[18px] font-semibold text-black line-clamp-2">
+                      {title}
                     </h5>
 
                     {t.shortDescription && (
-                      <p className="!mt-2 text-md !text-black opacity-60 line-clamp-3">
+                      <p className="mt-2 text-sm text-black/70 line-clamp-3">
                         {t.shortDescription}
                       </p>
                     )}
 
-                    {t.priceAED != null && t.priceAED !== "" && (
-                      <div className="mt-1 flex items-center gap-1">
-                        <p className="!text-[16px] !text-black font-bold">
-                          {fmtMoney(t.priceAED as any, "AED")}
+                    {price != null && price !== "" && (
+                      <div className="mt-2">
+                        <p className="text-[16px] font-bold">
+                          {fmtMoney(price as any, "AED")}
                         </p>
                       </div>
                     )}
 
-                    <div className="mt-auto flex flex-col gap-2 pt-6">
+                    {/* Optional location */}
+                    {t.location && (
+                      <p className="mt-1 text-sm text-black/60 line-clamp-1">
+                        {t.location}
+                      </p>
+                    )}
+
+                    <div className="mt-auto flex flex-col gap-2 pt-5">
                       <ButtonPrimary
                         className="w-full !justify-center rounded-md text-center"
                         text="Book Online"
@@ -128,21 +156,22 @@ export default function SeeMoreGrid({
             );
           }
 
-          // TRANSPORTS
+          // ---------- TRANSPORTS ----------
           const v = it as TransportCard;
           const href = `/transports/${v.id}`;
-          const img = v._img || "/vehicle-placeholder.jpg";
+          const img = v._img || "/preview-img.png";
           const isActive = v.isActive ?? true;
 
           return (
             <div
               key={`veh-${v.id}`}
-              className="col-span-12 sm:col-span-6 lg:col-span-3"
+              className="col-span-12 sm:col-span-6 lg:col-span-3 flex"
             >
-              <div className="flex h-full flex-col gap-1 rounded-sm shadow-sm bg-white relative">
+              {/* Equal-height card */}
+              <div className="flex flex-col flex-1 rounded-md border border-gray-200 bg-white relative">
                 {!isActive && (
-                  <div className="absolute top-0 w-full px-3">
-                    <div className="mt-4 w-fit rounded bg-gray-100 px-2 py-1 !text-[10px] font-bold uppercase text-gray-700">
+                  <div className="px-3 pt-3">
+                    <div className="w-fit rounded bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase text-gray-700">
                       Unavailable
                     </div>
                   </div>
@@ -154,44 +183,44 @@ export default function SeeMoreGrid({
                     alt={v.name}
                     width={1200}
                     height={800}
-                    className="h-[180px] w-full rounded-t-sm object-cover"
+                    className="h-[180px] w-full rounded-t-md object-cover"
                     unoptimized
+                    onError={(e) => {
+                      const el = e.currentTarget as HTMLImageElement;
+                      if (!el.src.endsWith("/preview-img.png")) {
+                        el.src = "/preview-img.png";
+                      }
+                    }}
                   />
                 </Link>
 
-                <div className="flex flex-1 flex-col px-4 pt-2 pb-4">
-                  <h5 className="!text-[20px] !font-semibold !text-black line-clamp-2">
+                <div className="flex flex-1 flex-col px-4 pt-3 pb-4">
+                  <h5 className="text-[18px] font-semibold text-black line-clamp-2">
                     {v.name}
                   </h5>
 
-                  <div className="mt-1 flex items-center gap-1">
-                    <p className="!text-[16px] !text-black font-bold">
+                  <div className="mt-1 flex items-center gap-2 text-sm">
+                    <p className="font-bold">
                       {fmtMoney(v.ratePerDay as any, v.currency)}/day
                     </p>
-                    <span>|</span>
-                    <p className="!text-[16px] !text-black font-bold">
+                    <span className="opacity-40">|</span>
+                    <p className="font-bold">
                       {fmtMoney(v.ratePerHour as any, v.currency)}/hr
                     </p>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <p className="mt-0.5 text-md text-black/60 line-clamp-1">
-                      {v.makeAndModel}
-                    </p>
-                    {!!v.passengers && (
-                      <p className="mt-1 text-md text-black/60">
-                        seats: {v.passengers}
-                      </p>
-                    )}
+                  <div className="mt-0.5 flex items-center justify-between text-sm text-black/60">
+                    <p className="line-clamp-1">{v.makeAndModel}</p>
+                    {!!v.passengers && <p>seats: {v.passengers}</p>}
                   </div>
 
                   {v.description && (
-                    <p className="!mt-2 text-md !text-black opacity-60 line-clamp-3">
+                    <p className="mt-2 text-sm text-black/70 line-clamp-3">
                       {v.description}
                     </p>
                   )}
 
-                  <div className="mt-auto flex flex-col gap-2 pt-6">
+                  <div className="mt-auto flex flex-col gap-2 pt-5">
                     <ButtonPrimary
                       className="w-full !justify-center rounded-md text-center"
                       text="Book Vehicle"

@@ -1,4 +1,7 @@
-import { createAuthClient } from "better-auth/react"
+import { createAuthClient } from "better-auth/react";
 export const authClient = createAuthClient({
-    baseURL: "https://4utravels-v3.vercel.app/api/auth"
-})
+   baseURL: "https://4utravels-v3.vercel.app/api/auth",
+  fetchOptions: {
+    credentials: "include", 
+  },
+});
