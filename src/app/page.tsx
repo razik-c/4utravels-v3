@@ -104,6 +104,29 @@ async function attachTourHero(rows: ProductRow[]): Promise<ProductRow[]> {
   return out;
 }
 
+const services = [
+  {
+    href: "/transports/all",
+    img: "/vehicle.png",
+    label: "Transportations",
+  },
+  {
+    href: "/visa",
+    img: "/visa.png",
+    label: "Visa Services",
+  },
+  {
+    href: "/tours/all",
+    img: "/holiday.png",
+    label: "Tour Packages",
+  },
+  {
+    href: "",
+    img: "/plane.png",
+    label: "Ticketing",
+  },
+];
+
 export default async function Home() {
   const tours = await getTours(24);
   const toursWithImg = await attachTourHero(tours as ProductRow[]);
@@ -125,22 +148,18 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-12 mt-5 gap-5">
-            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
-              <Image src={"/vehicle.png"} alt="" width={100} height={100} />
-              <h6 className="mt-4">Transportations</h6>
-            </div>
-            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
-              <Image src={"/visa.png"} alt="" width={100} height={100} />
-              <h6 className="mt-4">Visa Services</h6>
-            </div>
-            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
-              <Image src={"/holiday.png"} alt="" width={100} height={100} />
-              <h6 className="mt-4">Tour Packages</h6>
-            </div>
-            <div className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md">
-              <Image src={"/plane.png"} alt="" width={100} height={100} />
-              <h6 className="mt-4">Ticketing</h6>
-            </div>
+            {services.map((s) => (
+              <Link
+                key={s.href}
+                href={s.href}
+                className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md bg-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-transform duration-150"
+              >
+                <Image src={s.img} alt={s.label} width={100} height={100} />
+                <h6 className="mt-4 text-center text-[16px] font-medium">
+                  {s.label}
+                </h6>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
