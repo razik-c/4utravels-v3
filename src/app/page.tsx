@@ -111,7 +111,7 @@ const services = [
     label: "Transportations",
   },
   {
-    href: "/visa",
+    href: "/visas",
     img: "/visa.png",
     label: "Visa Services",
   },

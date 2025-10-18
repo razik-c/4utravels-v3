@@ -20,7 +20,7 @@ const NAV = [
     ),
   },
   {
-    href: "/dashboard/visa",
+    href: "/dashboard/visas",
     label: "Add Visa Details",
     icon: (
       <svg

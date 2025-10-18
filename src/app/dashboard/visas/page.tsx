@@ -4,16 +4,16 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+// If you have this component, keep it. If not, remove the block where it's used.
 import FolderDrop from "@/components/FolderDrop";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
-// Enums match schema.ts
+// ---- Types (match your schema.ts enums/shape where relevant) ----
 type VisaBadge = "Popular" | "Best Value" | "New";
+type SectionKind = "text" | "list";
 
 type DraftImage = { file: File; url: string };
-
-type SectionKind = "text" | "list";
 
 type SectionDraft = {
   kind: SectionKind;
@@ -25,15 +25,12 @@ type SectionDraft = {
 type FormState = {
   title: string;
   slug: string;
-  // description moved to its own state below to avoid caret jumps
   badge?: VisaBadge | null;
   basePriceAmount: string;
   basePriceCurrency: string;
   isActive: boolean;
   displayOrder: string;
-  // Uploads
   images: DraftImage[];
-  // Relations
   features: string[];
   sections: SectionDraft[];
 };
@@ -47,29 +44,46 @@ function slugify(s: string) {
     .slice(0, 120);
 }
 
-// (You can reuse your /api/upload/batch logic for image uploads if needed)
-async function uploadAll(files: File[], _baseDir: string) {
+// (Reuse your /api/upload/batch logic; this is compatible with R2 signed PUTs)
+async function uploadAll(files: File[], baseDir: string) {
   if (!files.length) return { uploaded: [] as { key: string }[] };
-  const items = files.map((f) => ({
-    key: `visas/${slugify(f.name)}`,
-    contentType: f.type || "application/octet-stream",
-  }));
 
-  const res = await fetch("/api/upload/batch", {
+  const items = files.map((f) => {
+    const safeName = slugify(f.name.replace(/\.[^.]+$/, "")) + (/\.[^.]+$/.exec(f.name)?.[0] || "");
+    return {
+      key: `${baseDir}/${safeName}`,
+      contentType: f.type || "application/octet-stream",
+    };
+  });
+
+  const signRes = await fetch("/api/upload/batch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ items }),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || "sign failed");
 
+  if (!signRes.ok) {
+    let msg = "sign failed";
+    try {
+      const j = await signRes.json();
+      msg = j?.error || msg;
+    } catch {}
+    throw new Error(msg);
+  }
+
+  const signed = await signRes.json(); // [{key, url|signedUrl}, ...]
   const urlByKey = new Map<string, string>();
-  for (const it of json) urlByKey.set(it.key, it.url || it.signedUrl);
+  for (const it of signed) urlByKey.set(it.key, it.url || it.signedUrl);
 
+  // Upload files in parallel
   await Promise.all(
     files.map(async (f) => {
-      const key = `visas/${slugify(f.name)}`;
-      const put = await fetch(urlByKey.get(key)!, {
+      const safeName = slugify(f.name.replace(/\.[^.]+$/, "")) + (/\.[^.]+$/.exec(f.name)?.[0] || "");
+      const key = `${baseDir}/${safeName}`;
+      const putUrl = urlByKey.get(key);
+      if (!putUrl) throw new Error(`missing signed URL for ${key}`);
+
+      const put = await fetch(putUrl, {
         method: "PUT",
         headers: { "Content-Type": f.type || "application/octet-stream" },
         body: f,
@@ -77,19 +91,14 @@ async function uploadAll(files: File[], _baseDir: string) {
       if (!put.ok) throw new Error(`upload failed: ${key}`);
     })
   );
+
   return { uploaded: items.map(({ key }) => ({ key })) };
 }
 
 export default function AddVisaPage() {
   const router = useRouter();
 
-  // Keep Markdown in its own state to prevent caret jumps
-  const [description, setDescription] = React.useState<string>("");
-
-  // Track if the slug was edited manually; if not, keep it synced with title
-  const [slugEdited, setSlugEdited] = React.useState(false);
-
-  const [form, setForm] = React.useState<FormState>({
+  const DEFAULT_FORM: FormState = {
     title: "",
     slug: "",
     badge: null,
@@ -103,7 +112,18 @@ export default function AddVisaPage() {
       { kind: "list", title: "Requirements", items: ["Passport copy", "Photo"] },
       { kind: "text", title: "Processing & Notes", body: "Standard and express processing available." },
     ],
-  });
+  };
+
+  // Keep Markdown separate to prevent caret jumps in MDEditor
+  const [description, setDescription] = React.useState<string>("");
+
+  // Track if the slug was edited manually
+  const [slugEdited, setSlugEdited] = React.useState(false);
+
+  const [form, setForm] = React.useState<FormState>(DEFAULT_FORM);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [okMsg, setOkMsg] = React.useState<string | null>(null);
 
   // Auto-sync slug with title unless user has manually edited slug
   React.useEffect(() => {
@@ -117,12 +137,11 @@ export default function AddVisaPage() {
   }
 
   const canSubmit = React.useMemo(() => {
-    return !!form.title.trim() && !!form.basePriceAmount && Number(form.basePriceAmount) >= 0;
-  }, [form]);
+    const amt = Number(form.basePriceAmount);
+    return !!form.title.trim() && !Number.isNaN(amt) && amt >= 0;
+  }, [form.title, form.basePriceAmount]);
 
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
+  // Image selection + previews
   const filesRef = React.useRef<File[]>([]);
   const onFilesChange = React.useCallback((files: File[]) => {
     filesRef.current = files || [];
@@ -132,55 +151,6 @@ export default function AddVisaPage() {
     }));
     setForm((f) => ({ ...f, images: previews }));
   }, []);
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!canSubmit || saving) return;
-
-    setError(null);
-    setSaving(true);
-
-    let imageKeys: string[] = [];
-    try {
-      if (filesRef.current.length) {
-        const { uploaded } = await uploadAll(filesRef.current, `visas/${form.slug || slugify(form.title)}`);
-        imageKeys = uploaded.map((u) => u.key);
-      }
-    } catch (err: any) {
-      setError(`Upload failed: ${err.message || err}`);
-      setSaving(false);
-      return;
-    }
-
-    try {
-      const payload = {
-        slug: form.slug.trim(),
-        title: form.title.trim(),
-        description: description, // <- from isolated state
-        badge: form.badge || null,
-        basePriceAmount: Number(form.basePriceAmount),
-        basePriceCurrency: form.basePriceCurrency,
-        isActive: !!form.isActive,
-        displayOrder: Number(form.displayOrder),
-        imageKeys,
-        features: form.features.filter((f) => f.trim().length),
-        sections: form.sections,
-      };
-
-      const res = await fetch("/api/visas/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-      router.push("/dashboard/visas");
-    } catch (err: any) {
-      setError(err?.message || "Failed to create visa");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   function updateFeature(i: number, val: string) {
     const next = [...form.features];
@@ -196,6 +166,73 @@ export default function AddVisaPage() {
     const next = [...form.features];
     next.splice(i, 1);
     set("features", next);
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!canSubmit || saving) return;
+
+    setError(null);
+    setOkMsg(null);
+    setSaving(true);
+
+    let imageKeys: string[] = [];
+    try {
+      if (filesRef.current.length) {
+        const dir = `visas/${form.slug || slugify(form.title)}`;
+        const { uploaded } = await uploadAll(filesRef.current, dir);
+        imageKeys = uploaded.map((u) => u.key);
+      }
+    } catch (err: any) {
+      setError(`Upload failed: ${err?.message || err}`);
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const payload = {
+        slug: form.slug.trim(),
+        title: form.title.trim(),
+        description, // from isolated state
+        badge: form.badge || null,
+        basePriceAmount: Number(form.basePriceAmount),
+        basePriceCurrency: form.basePriceCurrency,
+        isActive: !!form.isActive,
+        displayOrder: Number(form.displayOrder),
+        imageKeys,
+        features: form.features
+          .map((f) => f.trim())
+          .filter((f) => f.length > 0),
+        sections: form.sections.map((s) =>
+          s.kind === "list"
+            ? { ...s, items: (s.items || []).map((x) => x.trim()).filter(Boolean) }
+            : { ...s, body: (s.body || "").trim() }
+        ),
+      };
+
+      const res = await fetch("/api/visas/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Failed to create visa");
+      }
+
+      // ---- stay on this page; reset state; soft refresh any server data ----
+      setForm(DEFAULT_FORM);
+      setDescription("");
+      filesRef.current = [];
+      setSlugEdited(false);
+      setOkMsg("Visa created successfully.");
+      router.refresh(); // If you want a hard reload instead: window.location.reload();
+    } catch (err: any) {
+      setError(err?.message || "Failed to create visa");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -267,7 +304,7 @@ export default function AddVisaPage() {
                 </div>
               </div>
 
-              {/* not-prose prevents prose styles from affecting the editor */}
+              {/* Description (Markdown) */}
               <div data-color-mode="light" className="w-full not-prose" suppressHydrationWarning>
                 <label className="block text-md font-medium mb-2">Description (Markdown)</label>
                 <div className="rounded-md border-2 border-gray-200">
@@ -292,7 +329,12 @@ export default function AddVisaPage() {
                     placeholder="Feature text"
                     className="flex-1 rounded border-2 border-gray-200 px-3 py-2"
                   />
-                  <button type="button" onClick={() => removeFeature(i)} className="text-red-600 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => removeFeature(i)}
+                    className="text-red-600 text-sm"
+                    aria-label={`Remove feature ${i + 1}`}
+                  >
                     ✕
                   </button>
                 </div>
@@ -377,17 +419,23 @@ export default function AddVisaPage() {
               </button>
             </div>
 
+            {/* Alerts */}
             {error && (
               <div className="bg-red-50 text-red-700 border border-red-200 rounded p-3">
                 {error}
+              </div>
+            )}
+            {okMsg && (
+              <div className="bg-green-50 text-green-700 border border-green-200 rounded p-3">
+                {okMsg}
               </div>
             )}
           </div>
 
           {/* Sidebar */}
           <div className="col-span-12 lg:col-span-4 space-y-5">
-            {/* Uncomment if you want image uploading on this page */}
-            {/* <div className="bg-white p-4 rounded-md">
+            {/* Images (optional — requires your FolderDrop component) */}
+            <div className="bg-white p-4 rounded-md">
               <h6 className="text-lg mb-3">Images</h6>
               <FolderDrop
                 name="images"
@@ -400,14 +448,15 @@ export default function AddVisaPage() {
                   {form.images.length} image(s) selected
                 </div>
               )}
-            </div> */}
+            </div>
 
             <div className="bg-white p-4 rounded-md space-y-3">
               <h6 className="text-lg mb-3">Meta</h6>
+
               <label className="block text-md font-medium">Badge</label>
               <select
                 value={form.badge || ""}
-                onChange={(e) => set("badge", e.target.value as VisaBadge)}
+                onChange={(e) => set("badge", (e.target.value as VisaBadge) || null)}
                 className="w-full rounded border-2 border-gray-200 px-3 py-3 bg-white"
               >
                 <option value="">None</option>

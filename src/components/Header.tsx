@@ -18,7 +18,7 @@ const dropDownItem: MenuItem[] = [
 ];
 
 const menuItem: MenuItem[] = [
-  { id: "visa", title: "Visa", route: "/visa" },
+  { id: "visa", title: "Visa", route: "/visas" },
   { id: "packages", title: "Packages", route: "/tours/all" },
   { id: "transportation", title: "Transports", route: "/transports/all" },
   { id: "about", title: "About", route: "/" },
