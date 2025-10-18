@@ -21,6 +21,8 @@ import {
   publicUrlForKey,
 } from "@/lib/r2";
 import SafeImage from "@/components/safeImage";
+import PopularServicesCarousel from "@/components/PopularServices";
+import PopularServices from "@/components/PopularServices";
 
 type ProductRow = typeof products.$inferSelect & { _img?: string | null };
 
@@ -143,9 +145,6 @@ export default async function Home() {
       {/* --- Our Services --- */}
       <section>
         <div className="container mt-8">
-          <div className="flex items-center justify-center lg:justify-between">
-            <h5 className="text-center">Our Services</h5>
-          </div>
 
           <div className="grid grid-cols-12 mt-5 gap-5">
             {services.map((s) => (
@@ -162,6 +161,11 @@ export default async function Home() {
             ))}
           </div>
         </div>
+      </section>
+
+
+      <section className="pt-8">
+        <PopularServices />
       </section>
 
       <section className="pt-8">
@@ -223,6 +227,8 @@ export default async function Home() {
                     <div className="flex items-center justify-between">
                       <h6>{p.name}</h6>
                     </div>
+
+                    <p className="!text-[14px]">{p.description ?? ""}</p>
 
                     <div className="flex justify-between items-center mt-1">
                       <p>

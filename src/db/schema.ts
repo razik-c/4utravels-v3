@@ -17,7 +17,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
-/* ---------------- Enums ---------------- */
 export const productTypeEnum = pgEnum("product_type", ["tour", "transport"]);
 export const productTemplateEnum = pgEnum("product_template", ["horizontal", "vertical"]);
 export const publishStatusEnum = pgEnum("publish_status", ["draft", "published"]);
@@ -247,7 +246,28 @@ export const bookingDocuments = pgTable(
   })
 );
 
-/* ------------ Relations ------------ */
+
+export const services = pgTable("services", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 256 }).notNull(),
+  shortDescription: text("short_description"),
+  longDescription: text("long_description"),
+  heroKey: text("hero_key"),
+  tags: text("tags"),
+  status: varchar("status", { length: 16 }).default("draft").notNull(), // 'draft' | 'published'
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const serviceImages = pgTable("service_images", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  r2Key: text("r2_key").notNull(),
+  position: integer("position"),
+  isHero: boolean("is_hero").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const visasRelations = relations(visas, ({ many }) => ({
   features: many(visaFeatures),
   sections: many(visaSections),

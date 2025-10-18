@@ -8,7 +8,7 @@ type ProductType = "tour" | "transport";
 type ProductTemplate = "horizontal" | "vertical";
 type PublishStatus = "draft" | "published";
 
-// <-- Align this with API ProductOut: numeric fields are numbers, and include `_img`
+// ---------- Products ----------
 type ProductRow = {
   id: string;
   type: ProductType;
@@ -32,7 +32,7 @@ type ProductRow = {
 
   // media/meta
   heroKey?: string | null;
-  _img?: string | null; // <-- add this
+  _img?: string | null;
   tags?: string | null;
 
   status: PublishStatus;
@@ -40,6 +40,7 @@ type ProductRow = {
   updatedAt?: string;
 };
 
+// ---------- Visas ----------
 type VisaBadge = "Popular" | "Best Value" | "New" | null;
 type VisaRow = {
   id: number;
@@ -51,6 +52,19 @@ type VisaRow = {
   basePriceCurrency: string;
   isActive: boolean;
   displayOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+// ---------- Services ----------
+type ServiceRow = {
+  id: string;
+  title: string;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  status: PublishStatus;
+  tags?: string | null;
+  _img?: string | null; // from /api/services GET
   createdAt?: string;
   updatedAt?: string;
 };
@@ -80,6 +94,7 @@ export default function ProductsDashboardPage() {
 
   const [rows, setRows] = React.useState<ProductRow[]>([]);
   const [visas, setVisas] = React.useState<VisaRow[]>([]);
+  const [services, setServices] = React.useState<ServiceRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
 
@@ -88,26 +103,29 @@ export default function ProductsDashboardPage() {
     (async () => {
       try {
         setLoading(true);
-        const [pRes, vRes] = await Promise.all([
+        const [pRes, vRes, sRes] = await Promise.all([
           fetch("/api/products", { cache: "no-store" }),
           fetch("/api/visas", { cache: "no-store" }),
+          fetch("/api/services", { cache: "no-store" }),
         ]);
-        if (!pRes.ok) throw new Error(await pRes.text());
-        if (!vRes.ok) throw new Error(await vRes.text());
+        if (!pRes.ok) throw new Error(await safeText(pRes));
+        if (!vRes.ok) throw new Error(await safeText(vRes));
+        if (!sRes.ok) throw new Error(await safeText(sRes));
 
-        // /api/products already returns numerics as numbers and _img as a full URL
         const pData: ProductRow[] = await pRes.json();
 
-        // /api/visas may return numeric as string; normalize here
         const vDataRaw: any[] = await vRes.json();
         const vData: VisaRow[] = (vDataRaw || []).map((r) => ({
           ...r,
           basePriceAmount: typeof r.basePriceAmount === "string" ? Number(r.basePriceAmount) : r.basePriceAmount,
         }));
 
+        const sData: ServiceRow[] = await sRes.json();
+
         if (!abort) {
           setRows(pData);
           setVisas(vData);
+          setServices(sData);
         }
       } catch (e: any) {
         if (!abort) setErr(e?.message || "Failed to load data");
@@ -131,7 +149,7 @@ export default function ProductsDashboardPage() {
     setRows((x) => x.filter((r) => r.id !== id));
     try {
       const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await safeText(res));
     } catch {
       setRows(prev);
       alert("Delete failed.");
@@ -144,9 +162,22 @@ export default function ProductsDashboardPage() {
     setVisas((x) => x.filter((r) => r.id !== id));
     try {
       const res = await fetch(`/api/visas/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) throw new Error(await safeText(res));
     } catch {
       setVisas(prev);
+      alert("Delete failed.");
+    }
+  }
+
+  async function onDeleteService(id: string) {
+    if (!confirm("Delete this service? This cannot be undone.")) return;
+    const prev = services;
+    setServices((x) => x.filter((r) => r.id !== id));
+    try {
+      const res = await fetch(`/api/services/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await safeText(res));
+    } catch {
+      setServices(prev);
       alert("Delete failed.");
     }
   }
@@ -264,6 +295,69 @@ export default function ProductsDashboardPage() {
         )}
       </div>
 
+      {/* SERVICES PANEL */}
+      <div className="rounded-2xl bg-white/70 backdrop-blur border border-gray-100 p-4 sm:p-6">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold">Services</h4>
+        </div>
+
+        <div className="mt-6 grid grid-cols-12 px-3 text-xs font-semibold text-black/60">
+          <div className="col-span-6 sm:col-span-6">Service</div>
+          <div className="hidden sm:block col-span-3">Tags</div>
+          <div className="col-span-3 sm:col-span-2">Status</div>
+          <div className="hidden sm:block col-span-1 text-right">Actions</div>
+        </div>
+        <div className="mt-2 h-px w-full bg-gray-100" />
+
+        {loading && <div className="px-3 py-6 text-sm text-black/60">Loading…</div>}
+        {err && !loading && <div className="px-3 py-6 text-sm text-red-600">{err}</div>}
+
+        {!loading && !err && (
+          <ul className="divide-y divide-gray-100">
+            {services.map((s) => (
+              <li key={s.id} className="grid grid-cols-12 items-center px-3 py-4 gap-3">
+                <div className="col-span-12 sm:col-span-6 flex items-center gap-3">
+                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <Image
+                      src={s._img || "/preview-img.png"}
+                      alt={s.title}
+                      width={44}
+                      height={44}
+                      className="h-full w-full object-cover"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{s.title}</div>
+                    <div className="truncate text-xs text-black/60">
+                      {(s.shortDescription || s.longDescription || "").replace(/\s+/g, " ").slice(0, 80)}
+                      {(s.shortDescription || s.longDescription || "").length > 80 ? "…" : ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex col-span-3 text-sm text-black/70 truncate">
+                  {s.tags || "—"}
+                </div>
+
+                <div className="col-span-6 sm:col-span-2">
+                  <span className={statusPill(s.status)}>{s.status}</span>
+                </div>
+
+                <div className="hidden sm:flex col-span-1 justify-end">
+                  <button
+                    onClick={() => onDeleteService(s.id)}
+                    className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {/* VISAS PANEL */}
       <div className="rounded-2xl bg-white/70 backdrop-blur border border-gray-100 p-4 sm:p-6">
         <div className="flex items-center justify-between">
@@ -279,13 +373,13 @@ export default function ProductsDashboardPage() {
         </div>
         <div className="mt-2 h-px w-full bg-gray-100" />
 
-        {loading && <div className="px-3 py-6 text-sm text-black/60">Loading…</div>}
+        {loading && <div className="px-3 py-6 text-sm text_black/60">Loading…</div>}
         {err && !loading && <div className="px-3 py-6 text-sm text-red-600">{err}</div>}
 
         {!loading && !err && (
           <ul className="divide-y divide-gray-100">
             {visas.map((v) => (
-              <li key={v.id} className="grid grid-cols-12 items-center px-3 py-4 gap-3">
+              <li key={v.id} className="grid grid-cols-12 items_center px-3 py-4 gap-3">
                 <div className="col-span-12 sm:col-span-6">
                   <div className="truncate text-sm font-semibold">{v.title}</div>
                   <div className="truncate text-xs text-black/60">{v.slug}</div>
@@ -328,4 +422,13 @@ export default function ProductsDashboardPage() {
       </div>
     </main>
   );
+}
+
+// small helper
+async function safeText(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return `${res.status}`;
+  }
 }
