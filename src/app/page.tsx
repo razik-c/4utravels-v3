@@ -23,6 +23,8 @@ import {
 import SafeImage from "@/components/safeImage";
 import PopularServicesCarousel from "@/components/PopularServices";
 import PopularServices from "@/components/PopularServices";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type ProductRow = typeof products.$inferSelect & { _img?: string | null };
 
@@ -145,7 +147,6 @@ export default async function Home() {
       {/* --- Our Services --- */}
       <section>
         <div className="container mt-8">
-
           <div className="grid grid-cols-12 mt-5 gap-5">
             {services.map((s) => (
               <Link
@@ -162,7 +163,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
 
       <section className="pt-8">
         <PopularServices />
@@ -219,7 +219,7 @@ export default async function Home() {
                       alt={p.name}
                       width={300}
                       height={400}
-                      className="w-full object-cover rounded-md h-[200px]"
+                      className="w-full object-cover rounded-md h-[280px]"
                     />
                   </Link>
 
@@ -228,13 +228,23 @@ export default async function Home() {
                       <h6>{p.name}</h6>
                     </div>
 
-                    <p className="!text-[14px]">{p.description ?? ""}</p>
+                    {p.description && (
+                      <div className="not-prose max-w-none text-black/80 [&_*]:!text-[14px] [&_*]:!leading-snug pt-1 pb-2">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {p.description}
+                        </ReactMarkdown>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center mt-1">
-                      <p>
-                        <span className="text-[4px]">AED </span>
-                        {p.priceFrom ?? "0.00"}
-                      </p>
+                      {Number(p.priceFrom) > 0 && (
+                        <p>
+                          <span className="text-[4px]">AED </span>
+                          {Number(p.priceFrom).toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      )}
                       <p className="!text-[16px]">{p.location ?? ""}</p>
                     </div>
 
@@ -246,7 +256,7 @@ export default async function Home() {
                         target="_blank"
                         rel="noopener noreferrer"
                       />
-                      <div className="flex items-center">
+                      {/* <div className="flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 20 20"
@@ -256,7 +266,7 @@ export default async function Home() {
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.95a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.36 2.44a1 1 0 00-.364 1.118l1.287 3.95c.3.922-.755 1.688-1.54 1.118l-3.36-2.44a1 1 0 00-1.175 0l-3.36 2.44c-.785.57-1.84-.196-1.54-1.118l1.287-3.95a1 1 0 00-.364-1.118l-3.36-2.44c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.95z" />
                         </svg>
                         <p>{(p as any).rating ?? "4.9"}</p>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
