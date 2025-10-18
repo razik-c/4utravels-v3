@@ -133,7 +133,7 @@ export default function Header() {
 
         {/* Right controls (desktop) */}
         <div className="lg:flex gap-4 items-center text-black hidden">
-          {dropDownItem.map((item) =>
+          {/* {dropDownItem.map((item) =>
             item.children?.length ? (
               <Dropdown key={item.id} item={item} />
             ) : (
@@ -141,7 +141,7 @@ export default function Header() {
                 {item.title}
               </Link>
             )
-          )}
+          )} */}
 
           <ButtonPrimary
             text={"Login"}
