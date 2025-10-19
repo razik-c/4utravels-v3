@@ -60,10 +60,10 @@ export default function RootLayout({
           </div>
         </body>
       ) : (
-        <body className="antialiased bg-[#F4F3F2] text-[#030303]">
+        <body className="antialiased bg-[#F4F3F2] text-[#030303] overflow-x-hidden">
           <div className="prose md:prose-tablet lg:prose-desktop !max-w-none">
             <Header />
-            <main className="prose md:prose-tablet lg:prose-desktop !max-w-none">
+            <main className="prose md:prose-tablet lg:prose-desktop !max-w-none overflow-x-hidden">
               {children}
             </main>
             <Footer />

@@ -99,7 +99,7 @@ export default function PopularServicesCarousel({
 
       <div className="relative pt-5 md:mt-2">
         <div className="-mx-2 sm:-mx-3 md:-mx-4">
-          <div className="embla overflow-hidden container px-2 sm:px-3 md:px-4" ref={emblaRef}>
+          <div className="embla !overflow-visible container px-2 sm:px-3 md:px-4" ref={emblaRef}>
             <div className="embla__container flex gap-2 sm:gap-3 md:gap-4">
               {loading && (
                 <div className="px-4 py-8 text-sm text-gray-500">Loading services…</div>

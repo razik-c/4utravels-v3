@@ -95,7 +95,7 @@ body {
   display: flex;
 }
 .embla__slide {
-  flex: 0 0 100%;
+  flex: 0 0 80%;
   min-width: 0;
 }
 
@@ -112,7 +112,7 @@ body {
 .embla { position: relative; }
 .embla__viewport { overflow: hidden; width: 100%; }
 .embla__container { display: flex; gap: 1rem; }
-.embla__slide { flex: 0 0 100%; }               /* mobile: 1 per view */
+.embla__slide { flex: 0 0 95%; }               /* mobile: 1 per view */
 
 
 /* Tablet Portrait (≥600px) */

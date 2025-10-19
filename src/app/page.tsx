@@ -147,12 +147,12 @@ export default async function Home() {
       {/* --- Our Services --- */}
       <section>
         <div className="container mt-8">
-          <div className="grid grid-cols-12 mt-5 gap-5">
+          <div className="grid lg:flex justify-center items-center grid-cols-12 mt-5 gap-5 lg:gap-12">
             {services.map((s) => (
               <Link
                 key={s.href}
                 href={s.href}
-                className="col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md bg-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-transform duration-150"
+                className="lg:min-w-[180px] col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md bg-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-transform duration-150"
               >
                 <Image src={s.img} alt={s.label} width={100} height={100} />
                 <h6 className="mt-4 text-center text-[16px] font-medium">
@@ -213,15 +213,13 @@ export default async function Home() {
                 className="col-span-12 md:col-span-6 lg:col-span-3 flex"
               >
                 <div className="flex flex-col flex-1 bg-white border-2 border-gray-200 p-2 rounded-lg">
-                  <Link href={href}>
-                    <SafeImage
-                      src={p._img ?? "/tour.jpg"}
-                      alt={p.name}
-                      width={300}
-                      height={400}
-                      className="w-full object-cover rounded-md h-[280px]"
-                    />
-                  </Link>
+                  <SafeImage
+                    src={p._img ?? "/tour.jpg"}
+                    alt={p.name}
+                    width={300}
+                    height={400}
+                    className="w-full object-cover rounded-md h-[300px]"
+                  />
 
                   <div className="flex flex-col flex-1 p-2">
                     <div className="flex items-center justify-between">
@@ -245,7 +243,30 @@ export default async function Home() {
                           })}
                         </p>
                       )}
-                      <p className="!text-[16px]">{p.location ?? ""}</p>
+                      <div className="flex items-start gap-1">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth="1.5"
+                          stroke="currentColor"
+                          className="size-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
+                          />
+                        </svg>
+                        <p className="!text-[16px] text-black/60">
+                          {p.location ?? ""}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="mt-auto flex gap-2 items-center pt-4">

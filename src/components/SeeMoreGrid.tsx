@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ButtonPrimary from "@/components/ButtonPrimary";
@@ -41,7 +42,16 @@ function fmtMoney(v: number | string | null | undefined, ccy?: string | null) {
   if (v === null || v === undefined || v === "") return "-";
   const num = typeof v === "string" ? Number(v) : v;
   if (Number.isNaN(num)) return "-";
-  return `${(ccy || "AED").toUpperCase()} ${num.toLocaleString()}`;
+  const symbol = (ccy || "AED").toUpperCase();
+  return `${symbol} ${num.toLocaleString()}`;
+}
+
+// compact numeric only for the inline AED micro-labels
+function fmtMoneyCompact(v: number | string | null | undefined) {
+  if (v === null || v === undefined || v === "") return "-";
+  const num = typeof v === "string" ? Number(v) : v;
+  if (Number.isNaN(num)) return "-";
+  return `${num.toLocaleString()}`;
 }
 
 function coalesceTourName(t: TourCard) {
@@ -54,6 +64,11 @@ function coalesceTourPrice(t: TourCard) {
   return raw;
 }
 
+function buildWhatsAppLink(phoneRaw: string, text: string) {
+  const phone = (phoneRaw || "").replace(/[^\d]/g, ""); // strip +, spaces, etc.
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
+
 export default function SeeMoreGrid({
   items,
   mode, // "tours" | "transports"
@@ -63,6 +78,19 @@ export default function SeeMoreGrid({
   mode: "tours" | "transports";
   heading?: string;
 }) {
+  // origin for deep link in the WA message (optional)
+  const [origin, setOrigin] = useState<string>("");
+  useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+
+  // use NEXT_PUBLIC_WA_NUMBER for WhatsApp actions
+  const WA_NUMBER = useMemo(
+    () => (process.env.NEXT_PUBLIC_WA_NUMBER || "").trim(),
+    []
+  );
+  const waEnabled = WA_NUMBER.length > 0;
+
   return (
     <section className="px-5 md:container">
       <div className="flex items-center justify-between px-2">
@@ -77,9 +105,31 @@ export default function SeeMoreGrid({
           if (mode === "tours" && !isTransport(it)) {
             const t = it as TourCard;
             const href = `/tours/${t.slug}`;
+            const pageLink = origin ? `${origin}${href}` : href;
             const img = t._img || "/tour.jpg";
             const title = coalesceTourName(t);
             const price = coalesceTourPrice(t);
+
+            // WhatsApp messages for tours
+            const baseMsg =
+              `Hello! I'm interested in this tour:\n\n` +
+              `Title: ${title}\n` +
+              (price ? `Price From: ${fmtMoney(price, "AED")}\n` : "") +
+              `Link: ${pageLink}`;
+
+            const waBook = waEnabled
+              ? buildWhatsAppLink(
+                  WA_NUMBER,
+                  `${baseMsg}\nI'd like to book this tour. Please share availability and next steps.`
+                )
+              : href;
+
+            const waEnquire = waEnabled
+              ? buildWhatsAppLink(
+                  WA_NUMBER,
+                  `${baseMsg}\nI'd like to enquire about details, inclusions, and total cost.`
+                )
+              : `${href}#enquire`;
 
             return (
               <div
@@ -87,17 +137,16 @@ export default function SeeMoreGrid({
                 className="col-span-12 sm:col-span-6 lg:col-span-3 flex"
               >
                 {/* Equal-height card */}
-                <div className="flex flex-col flex-1 rounded-md border border-gray-200 bg-white">
+                <div className="flex flex-col flex-1 rounded-md border border-gray-200 bg-white relative">
                   {/* Optional 'Popular' badge */}
                   {t.isFeatured && (
-                    <div className="px-3 pt-3">
-                      <div className="w-fit rounded bg-purple-100 px-2 py-1 text-[10px] font-bold uppercase text-purple-800">
+                    <div className="px-3 pt-3 absolute top-0 left-0">
+                      <div className="mt-2 w-fit rounded bg-purple-100 px-2 py-1 text-[10px] font-bold uppercase text-purple-800">
                         Popular
                       </div>
                     </div>
                   )}
 
-                  <Link href={href} className="block">
                     <Image
                       src={img}
                       alt={title}
@@ -110,7 +159,6 @@ export default function SeeMoreGrid({
                         if (!el.src.endsWith("/tour.jpg")) el.src = "/tour.jpg";
                       }}
                     />
-                  </Link>
 
                   <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
                     <h5 className="text-[18px] font-semibold text-black line-clamp-2">
@@ -123,7 +171,7 @@ export default function SeeMoreGrid({
                       </p>
                     )}
 
-                    {price != null && price !== "" && (
+                    {price != null && price != 0 && price !== "" && (
                       <div className="mt-2">
                         <p className="text-[16px] font-bold">
                           {fmtMoney(price as any, "AED")}
@@ -141,13 +189,17 @@ export default function SeeMoreGrid({
                     <div className="mt-auto flex flex-col gap-2 pt-5">
                       <ButtonPrimary
                         className="w-full !justify-center rounded-md text-center"
-                        text="Book Online"
-                        href={href}
+                        text={waEnabled ? "Book on WhatsApp" : "Book Online"}
+                        href={waBook}
+                        target={waEnabled ? "_blank" : undefined}
+                        rel={waEnabled ? "noopener noreferrer" : undefined}
                       />
                       <ButtonSecondary
-                        text="Enquire Now"
-                        href={`${href}#enquire`}
+                        text={waEnabled ? "Enquire on WhatsApp" : "Enquire Now"}
+                        href={waEnquire}
                         className="!m-0 w-full !py-2 !px-2 gap-4 rounded-md"
+                        target={waEnabled ? "_blank" : undefined}
+                        rel={waEnabled ? "noopener noreferrer" : undefined}
                       />
                     </div>
                   </div>
@@ -159,8 +211,36 @@ export default function SeeMoreGrid({
           // ---------- TRANSPORTS ----------
           const v = it as TransportCard;
           const href = `/transports/${v.id}`;
+          const pageLink = origin ? `${origin}${href}` : href;
           const img = v._img || "/preview-img.png";
           const isActive = v.isActive ?? true;
+
+          const baseMsg =
+            `Hello! I'm interested in this vehicle:\n\n` +
+            `Name: ${v.name}\n` +
+            (v.makeAndModel ? `Model: ${v.makeAndModel}\n` : "") +
+            (Number(v.ratePerDay) > 0
+              ? `Rate (Day): AED ${fmtMoneyCompact(v.ratePerDay)}\n`
+              : "") +
+            (Number(v.ratePerHour) > 0
+              ? `Rate (Hour): AED ${fmtMoneyCompact(v.ratePerHour)}\n`
+              : "") +
+            (v.passengers ? `Seats: ${v.passengers}\n` : "") +
+            `Link: ${pageLink}`;
+
+          const waBook = waEnabled
+            ? buildWhatsAppLink(
+                WA_NUMBER,
+                `${baseMsg}\nI'd like to book this vehicle. Please confirm availability and next steps.`
+              )
+            : href;
+
+          const waEnquire = waEnabled
+            ? buildWhatsAppLink(
+                WA_NUMBER,
+                `${baseMsg}\nI'd like to enquire about availability, inclusions, and total cost.`
+              )
+            : `${href}#enquire`;
 
           return (
             <div
@@ -168,16 +248,15 @@ export default function SeeMoreGrid({
               className="col-span-12 sm:col-span-6 lg:col-span-3 flex"
             >
               {/* Equal-height card */}
-              <div className="flex flex-col flex-1 rounded-md border border-gray-200 bg-white relative">
+              <div className="flex flex-col flex-1 rounded-md border-2 border-gray-200 bg-white relative">
                 {!isActive && (
-                  <div className="px-3 pt-3">
-                    <div className="w-fit rounded bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase text-gray-700">
+                  <div className="absolute top-0 left-0 w-full px-3">
+                    <div className="mt-4 w-fit rounded bg-gray-100 px-2 py-1 text-[10px] font-bold uppercase text-gray-700">
                       Unavailable
                     </div>
                   </div>
                 )}
 
-                <Link href={href} className="block">
                   <Image
                     src={img}
                     alt={v.name}
@@ -192,21 +271,31 @@ export default function SeeMoreGrid({
                       }
                     }}
                   />
-                </Link>
 
                 <div className="flex flex-1 flex-col px-4 pt-3 pb-4">
                   <h5 className="text-[18px] font-semibold text-black line-clamp-2">
                     {v.name}
                   </h5>
 
-                  <div className="mt-1 flex items-center gap-2 text-sm">
-                    <p className="font-bold">
-                      {fmtMoney(v.ratePerDay as any, v.currency)}/day
-                    </p>
-                    <span className="opacity-40">|</span>
-                    <p className="font-bold">
-                      {fmtMoney(v.ratePerHour as any, v.currency)}/hr
-                    </p>
+                  {/* Price row — small AED label, clean separators */}
+                  <div className="mt-1 flex items-center gap-1 text-sm">
+                    {Number(v.ratePerDay) > 0 && (
+                      <p>
+                        <span className="text-[6px]">AED</span>{" "}
+                        {fmtMoneyCompact(v.ratePerDay)}/day
+                      </p>
+                    )}
+
+                    {Number(v.ratePerDay) > 0 && Number(v.ratePerHour) > 0 && (
+                      <span className="opacity-40">|</span>
+                    )}
+
+                    {Number(v.ratePerHour) > 0 && (
+                      <p className="font-bold">
+                        <span className="text-[6px]">AED</span>{" "}
+                        {fmtMoneyCompact(v.ratePerHour)}/hr
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-0.5 flex items-center justify-between text-sm text-black/60">
@@ -220,16 +309,20 @@ export default function SeeMoreGrid({
                     </p>
                   )}
 
-                  <div className="mt-auto flex flex-col gap-2 pt-5">
+                  <div className="mt-auto flex flex-col gap-2 pt-6">
                     <ButtonPrimary
                       className="w-full !justify-center rounded-md text-center"
-                      text="Book Vehicle"
-                      href={href}
+                      text={waEnabled ? "Book on WhatsApp" : "Book Vehicle"}
+                      href={waBook}
+                      target={waEnabled ? "_blank" : undefined}
+                      rel={waEnabled ? "noopener noreferrer" : undefined}
                     />
                     <ButtonSecondary
-                      text="Enquire Now"
-                      href={`${href}#enquire`}
+                      text={waEnabled ? "Enquire on WhatsApp" : "Enquire Now"}
+                      href={waEnquire}
                       className="!m-0 w-full !py-2 !px-2 gap-4 rounded-md"
+                      target={waEnabled ? "_blank" : undefined}
+                      rel={waEnabled ? "noopener noreferrer" : undefined}
                     />
                   </div>
                 </div>
