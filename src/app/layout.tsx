@@ -48,7 +48,7 @@ export default function RootLayout({
                     width={64}
                     height={64}
                     className="object-cover !m-0 !p-0"
-                    src={"/logo.jpg"}
+                    src={"/logo.png"}
                     alt=""
                   />
                 </Link>
