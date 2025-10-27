@@ -70,21 +70,36 @@ type ServiceRow = {
 // ---------- Utils ----------
 function fmtMoney(n: number | null | undefined, cur = "AED", tail?: string) {
   if (n == null || Number.isNaN(n)) return "-";
-  return `${cur} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${tail ?? ""}`;
+  return `${cur} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${
+    tail ?? ""
+  }`;
 }
 function typePill(t: ProductType) {
-  const base = "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
-  return t === "tour" ? `${base} bg-indigo-50 text-indigo-700` : `${base} bg-emerald-50 text-emerald-700`;
+  const base =
+    "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
+  return t === "tour"
+    ? `${base} bg-indigo-50 text-indigo-700`
+    : `${base} bg-emerald-50 text-emerald-700`;
 }
 function statusPill(s: PublishStatus) {
-  const base = "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
-  return s === "published" ? `${base} bg-green-50 text-green-700` : `${base} bg-gray-100 text-gray-600`;
+  const base =
+    "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
+  return s === "published"
+    ? `${base} bg-green-50 text-green-700`
+    : `${base} bg-gray-100 text-gray-600`;
 }
 function badgePill(badge: VisaBadge) {
   if (!badge) return null;
-  const base = "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
-  if (badge === "Popular") return <span className={`${base} bg-indigo-50 text-indigo-700`}>{badge}</span>;
-  if (badge === "Best Value") return <span className={`${base} bg-emerald-50 text-emerald-700`}>{badge}</span>;
+  const base =
+    "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold";
+  if (badge === "Popular")
+    return (
+      <span className={`${base} bg-indigo-50 text-indigo-700`}>{badge}</span>
+    );
+  if (badge === "Best Value")
+    return (
+      <span className={`${base} bg-emerald-50 text-emerald-700`}>{badge}</span>
+    );
   return <span className={`${base} bg-amber-50 text-amber-700`}>{badge}</span>;
 }
 
@@ -99,7 +114,12 @@ function moveItem<T>(arr: T[], index: number, dir: -1 | 1) {
 }
 
 /** Reorder only items that satisfy `inSubset`, keeping others in place. */
-function reorderSubset<T>(rows: T[], inSubset: (r: T) => boolean, indexInSubset: number, dir: -1 | 1) {
+function reorderSubset<T>(
+  rows: T[],
+  inSubset: (r: T) => boolean,
+  indexInSubset: number,
+  dir: -1 | 1
+) {
   const subset = rows.filter(inSubset);
   if (subset.length === 0) return rows;
 
@@ -137,8 +157,16 @@ export default function ProductsDashboardPage() {
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
 
-  const [orderDirty, setOrderDirty] = React.useState({ products: false, services: false, visas: false });
-  const [savingOrder, setSavingOrder] = React.useState({ products: false, services: false, visas: false });
+  const [orderDirty, setOrderDirty] = React.useState({
+    products: false,
+    services: false,
+    visas: false,
+  });
+  const [savingOrder, setSavingOrder] = React.useState({
+    products: false,
+    services: false,
+    visas: false,
+  });
 
   React.useEffect(() => {
     let abort = false;
@@ -159,7 +187,10 @@ export default function ProductsDashboardPage() {
         const vDataRaw: any[] = await vRes.json();
         const vData: VisaRow[] = (vDataRaw || []).map((r) => ({
           ...r,
-          basePriceAmount: typeof r.basePriceAmount === "string" ? Number(r.basePriceAmount) : r.basePriceAmount,
+          basePriceAmount:
+            typeof r.basePriceAmount === "string"
+              ? Number(r.basePriceAmount)
+              : r.basePriceAmount,
         }));
 
         const sData: ServiceRow[] = await sRes.json();
@@ -245,25 +276,9 @@ export default function ProductsDashboardPage() {
       setOrderDirty((d) => ({ ...d, products: true }));
       return next;
     });
-  }
-
-  async function saveProductsOrder() {
-    setSavingOrder((s) => ({ ...s, products: true }));
-    try {
-      // Always persist the global order across ALL products
-      const ids = rows.map((r) => r.id);
-      const res = await fetch("/api/products/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      if (!res.ok) throw new Error(await safeText(res));
-      setOrderDirty((d) => ({ ...d, products: false }));
-    } catch (e) {
-      alert("Saving order failed.");
-    } finally {
-      setSavingOrder((s) => ({ ...s, products: false }));
-    }
+    setOrderDirty((d) => ({ ...d, products: true }));
+    flashRow("products", id);
+    showToast("Order changed — not saved");
   }
 
   // ---------- Reorder: Services ----------
@@ -275,6 +290,41 @@ export default function ProductsDashboardPage() {
       setOrderDirty((d) => ({ ...d, services: true }));
       return next;
     });
+    flashRow("services", id);
+    showToast("Order changed — not saved");
+  }
+
+  // ---------- Reorder: Visas ----------
+  function moveVisa(id: number, dir: -1 | 1) {
+    setVisas((prev) => {
+      const idx = prev.findIndex((r) => r.id === id);
+      if (idx === -1) return prev;
+      const next = moveItem(prev, idx, dir);
+      setOrderDirty((d) => ({ ...d, visas: true }));
+      return next;
+    });
+    flashRow("visas", id);
+    showToast("Order changed — not saved");
+  }
+
+  async function saveProductsOrder() {
+    setSavingOrder((s) => ({ ...s, products: true }));
+    try {
+      const ids = rows.map((r) => r.id);
+      const res = await fetch("/api/products/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error(await safeText(res));
+      setOrderDirty((d) => ({ ...d, products: false }));
+      showToast("Products order saved");
+    } catch {
+      showToast("Save failed", 1800);
+      alert("Saving order failed.");
+    } finally {
+      setSavingOrder((s) => ({ ...s, products: false }));
+    }
   }
 
   async function saveServicesOrder() {
@@ -288,22 +338,13 @@ export default function ProductsDashboardPage() {
       });
       if (!res.ok) throw new Error(await safeText(res));
       setOrderDirty((d) => ({ ...d, services: false }));
-    } catch (e) {
+      showToast("Services order saved");
+    } catch {
+      showToast("Save failed", 1800);
       alert("Saving order failed.");
     } finally {
       setSavingOrder((s) => ({ ...s, services: false }));
     }
-  }
-
-  // ---------- Reorder: Visas ----------
-  function moveVisa(id: number, dir: -1 | 1) {
-    setVisas((prev) => {
-      const idx = prev.findIndex((r) => r.id === id);
-      if (idx === -1) return prev;
-      const next = moveItem(prev, idx, dir);
-      setOrderDirty((d) => ({ ...d, visas: true }));
-      return next;
-    });
   }
 
   async function saveVisasOrder() {
@@ -317,11 +358,34 @@ export default function ProductsDashboardPage() {
       });
       if (!res.ok) throw new Error(await safeText(res));
       setOrderDirty((d) => ({ ...d, visas: false }));
-    } catch (e) {
+      showToast("Visas order saved");
+    } catch {
+      showToast("Save failed", 1800);
       alert("Saving order failed.");
     } finally {
       setSavingOrder((s) => ({ ...s, visas: false }));
     }
+  }
+
+  const [toast, setToast] = React.useState<string | null>(null);
+  const [flash, setFlash] = React.useState<{
+    kind: "products" | "services" | "visas";
+    id: string | number;
+  } | null>(null);
+
+  function showToast(msg: string, ms = 1400) {
+    setToast(msg);
+    window.clearTimeout((showToast as any)._t);
+    (showToast as any)._t = window.setTimeout(() => setToast(null), ms);
+  }
+
+  function flashRow(
+    kind: "products" | "services" | "visas",
+    id: string | number
+  ) {
+    setFlash({ kind, id });
+    window.clearTimeout((flashRow as any)._t);
+    (flashRow as any)._t = window.setTimeout(() => setFlash(null), 550);
   }
 
   return (
@@ -339,13 +403,20 @@ export default function ProductsDashboardPage() {
                   onClick={() => setTab(t)}
                   className={[
                     "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium",
-                    active ? "bg-violet-600 text-white shadow" : "bg-gray-100 text-black hover:bg-gray-200",
+                    active
+                      ? "bg-violet-600 text-white shadow"
+                      : "bg-gray-100 text-black hover:bg-gray-200",
                   ].join(" ")}
                 >
                   {t === "All" ? "All" : t === "tour" ? "Tour" : "Transport"}
                 </button>
               );
             })}
+            {orderDirty.products && (
+              <span className="text-xs px-2 py-1 rounded border border-amber-200 bg-amber-50 text-amber-800">
+                Unsaved changes
+              </span>
+            )}
             <button
               onClick={saveProductsOrder}
               disabled={savingOrder.products || !orderDirty.products}
@@ -361,18 +432,32 @@ export default function ProductsDashboardPage() {
           <div className="col-span-6 sm:col-span-5">Product</div>
           <div className="hidden sm:block col-span-2">Meta</div>
           <div className="col-span-3 sm:col-span-3">Status / Type</div>
-          <div className="col-span-3 sm:col-span-1 text-right sm:text-left">Price</div>
+          <div className="col-span-3 sm:col-span-1 text-right sm:text-left">
+            Price
+          </div>
           <div className="hidden sm:block col-span-1 text-right">Actions</div>
         </div>
         <div className="mt-2 h-px w-full bg-gray-100" />
 
-        {loading && <div className="px-3 py-6 text-sm text-black/60">Loading…</div>}
-        {err && !loading && <div className="px-3 py-6 text-sm text-red-600">{err}</div>}
+        {loading && (
+          <div className="px-3 py-6 text-sm text-black/60">Loading…</div>
+        )}
+        {err && !loading && (
+          <div className="px-3 py-6 text-sm text-red-600">{err}</div>
+        )}
 
         {!loading && !err && (
           <ul className="divide-y divide-gray-100">
             {filteredProducts.map((p) => (
-              <li key={p.id} className="grid grid-cols-12 items-center px-3 py-4 gap-3">
+              <li
+                key={p.id}
+                className={[
+                  "grid grid-cols-12 items-center px-3 py-4 gap-3 transition-colors",
+                  flash?.kind === "products" && flash.id === p.id
+                    ? "bg-amber-50"
+                    : "bg-transparent",
+                ].join(" ")}
+              >
                 <div className="col-span-12 sm:col-span-5 flex items-center gap-3">
                   <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
                     <Image
@@ -385,8 +470,12 @@ export default function ProductsDashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{p.name}</div>
-                    <div className="truncate text-xs text-black/60">{p.slug}</div>
+                    <div className="truncate text-sm font-semibold">
+                      {p.name}
+                    </div>
+                    <div className="truncate text-xs text-black/60">
+                      {p.slug}
+                    </div>
                   </div>
                 </div>
 
@@ -394,12 +483,16 @@ export default function ProductsDashboardPage() {
                   {p.type === "tour" ? (
                     <>
                       <span>{p.location || "—"}</span>
-                      <span className="text-black/60">{p.durationDays ? `${p.durationDays} day(s)` : "—"}</span>
+                      <span className="text-black/60">
+                        {p.durationDays ? `${p.durationDays} day(s)` : "—"}
+                      </span>
                     </>
                   ) : (
                     <>
                       <span>{p.makeAndModel || "—"}</span>
-                      <span className="text-black/60">{p.passengers ? `${p.passengers} seats` : "—"}</span>
+                      <span className="text-black/60">
+                        {p.passengers ? `${p.passengers} seats` : "—"}
+                      </span>
                     </>
                   )}
                 </div>
@@ -414,7 +507,7 @@ export default function ProductsDashboardPage() {
                 <div className="col-span-2 sm:text-left text-right">
                   {p.type === "tour" ? (
                     <div className="text-sm font-medium">
-                      {fmtMoney(p.priceFrom, p.currency)} 
+                      {fmtMoney(p.priceFrom, p.currency)}
                     </div>
                   ) : (
                     <div className="text-sm font-medium">
@@ -426,7 +519,9 @@ export default function ProductsDashboardPage() {
                       ) : (
                         <span>-</span>
                       )}
-                      {p.ratePerHour != null ? fmtMoney(p.ratePerHour, p.currency, "/hr") : "-"}
+                      {p.ratePerHour != null
+                        ? fmtMoney(p.ratePerHour, p.currency, "/hr")
+                        : "-"}
                     </div>
                   )}
                 </div>
@@ -463,13 +558,16 @@ export default function ProductsDashboardPage() {
       <div className="rounded-2xl bg-white/70 backdrop-blur border border-gray-100 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold">Services</h4>
-          <button
-            onClick={saveServicesOrder}
-            disabled={savingOrder.services || !orderDirty.services}
-            className="inline-flex items-center rounded-xl bg-black text-white px-3 py-2 text-sm disabled:opacity-50"
-          >
-            {savingOrder.services ? "Saving…" : "Save Order"}
-          </button>
+          <div className="flex items-center gap-2">
+            {orderDirty.services && (
+              <span className="text-xs px-2 py-1 rounded border border-amber-200 bg-amber-50 text-amber-800">
+                Unsaved changes
+              </span>
+            )}
+            <button onClick={saveServicesOrder} /* ... */>
+              {savingOrder.services ? "Saving…" : "Save Order"}
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 grid grid-cols-12 px-3 text-xs font-semibold text-black/60">
@@ -480,13 +578,25 @@ export default function ProductsDashboardPage() {
         </div>
         <div className="mt-2 h-px w-full bg-gray-100" />
 
-        {loading && <div className="px-3 py-6 text-sm text-black/60">Loading…</div>}
-        {err && !loading && <div className="px-3 py-6 text-sm text-red-600">{err}</div>}
+        {loading && (
+          <div className="px-3 py-6 text-sm text-black/60">Loading…</div>
+        )}
+        {err && !loading && (
+          <div className="px-3 py-6 text-sm text-red-600">{err}</div>
+        )}
 
         {!loading && !err && (
           <ul className="divide-y divide-gray-100">
             {services.map((s) => (
-              <li key={s.id} className="grid grid-cols-12 items-center px-3 py-4 gap-3">
+              <li
+                key={s.id}
+                className={[
+                  "grid grid-cols-12 items-center px-3 py-4 gap-3 transition-colors",
+                  flash?.kind === "services" && flash.id === s.id
+                    ? "bg-amber-50"
+                    : "bg-transparent",
+                ].join(" ")}
+              >
                 <div className="col-span-12 sm:col-span-6 flex items-center gap-3">
                   <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
                     <Image
@@ -499,10 +609,17 @@ export default function ProductsDashboardPage() {
                     />
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{s.title}</div>
+                    <div className="truncate text-sm font-semibold">
+                      {s.title}
+                    </div>
                     <div className="truncate text-xs text-black/60">
-                      {(s.shortDescription || s.longDescription || "").replace(/\s+/g, " ").slice(0, 80)}
-                      {(s.shortDescription || s.longDescription || "").length > 80 ? "…" : ""}
+                      {(s.shortDescription || s.longDescription || "")
+                        .replace(/\s+/g, " ")
+                        .slice(0, 80)}
+                      {(s.shortDescription || s.longDescription || "").length >
+                      80
+                        ? "…"
+                        : ""}
                     </div>
                   </div>
                 </div>
@@ -560,30 +677,50 @@ export default function ProductsDashboardPage() {
           <div className="col-span-6 sm:col-span-6">Visa</div>
           <div className="hidden sm:block col-span-2">Badge</div>
           <div className="col-span-3 sm:col-span-2">Active</div>
-          <div className="col-span-3 sm:col-span-1 text-right sm:text-left">Price</div>
+          <div className="col-span-3 sm:col-span-1 text-right sm:text-left">
+            Price
+          </div>
           <div className="hidden sm:block col-span-1 text-right">Actions</div>
         </div>
         <div className="mt-2 h-px w-full bg-gray-100" />
 
-        {loading && <div className="px-3 py-6 text-sm text-black/60">Loading…</div>}
-        {err && !loading && <div className="px-3 py-6 text-sm text-red-600">{err}</div>}
+        {loading && (
+          <div className="px-3 py-6 text-sm text-black/60">Loading…</div>
+        )}
+        {err && !loading && (
+          <div className="px-3 py-6 text-sm text-red-600">{err}</div>
+        )}
 
         {!loading && !err && (
           <ul className="divide-y divide-gray-100">
             {visas.map((v) => (
-              <li key={v.id} className="grid grid-cols-12 items-center px-3 py-4 gap-3">
+              <li
+                key={v.id}
+                className={[
+                  "grid grid-cols-12 items-center px-3 py-4 gap-3 transition-colors",
+                  flash?.kind === "visas" && flash.id === v.id
+                    ? "bg-amber-50"
+                    : "bg-transparent",
+                ].join(" ")}
+              >
                 <div className="col-span-12 sm:col-span-6">
-                  <div className="truncate text-sm font-semibold">{v.title}</div>
+                  <div className="truncate text-sm font-semibold">
+                    {v.title}
+                  </div>
                   <div className="truncate text-xs text-black/60">{v.slug}</div>
                 </div>
 
-                <div className="hidden sm:flex col-span-2">{badgePill(v.badge)}</div>
+                <div className="hidden sm:flex col-span-2">
+                  {badgePill(v.badge)}
+                </div>
 
                 <div className="col-span-6 sm:col-span-2">
                   <span
                     className={[
                       "inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold",
-                      v.isActive ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600",
+                      v.isActive
+                        ? "bg-green-50 text-green-700"
+                        : "bg-gray-100 text-gray-600",
                     ].join(" ")}
                   >
                     {v.isActive ? "Active" : "Inactive"}
@@ -593,7 +730,9 @@ export default function ProductsDashboardPage() {
                 <div className="col-span-6 sm:col-span-1 sm:text-left text-right">
                   <div className="text-sm font-medium">
                     {fmtMoney(
-                      typeof v.basePriceAmount === "string" ? Number(v.basePriceAmount) : v.basePriceAmount,
+                      typeof v.basePriceAmount === "string"
+                        ? Number(v.basePriceAmount)
+                        : v.basePriceAmount,
                       v.basePriceCurrency || "AED"
                     )}
                   </div>
@@ -626,6 +765,15 @@ export default function ProductsDashboardPage() {
           </ul>
         )}
       </div>
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-4 right-4 z-50 rounded-md border border-gray-200 bg-white/95 px-3 py-2 text-sm shadow-lg"
+        >
+          {toast}
+        </div>
+      )}
     </main>
   );
 }

@@ -40,11 +40,12 @@ function slugify(s: string) {
 async function getTours(limit: number) {
   noStore();
   const rows = await db
-    .select()
-    .from(products)
-    .where(eq(products.type, "tour"))
-    .orderBy(desc(products.createdAt))
-    .limit(limit);
+  .select()
+  .from(products)
+  .where(eq(products.type, "tour"))
+  .orderBy(products.displayOrder, desc(products.createdAt)) // primary + tiebreaker
+  .limit(limit);
+
 
   console.log("[home] tours fetched:", rows.length);
   return rows;
