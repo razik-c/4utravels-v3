@@ -256,7 +256,7 @@ export default async function Home() {
                           })}
                         </p>
                       )}
-                      <div className="flex items-start gap-1">
+                      <div className="flex items-center gap-1">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
