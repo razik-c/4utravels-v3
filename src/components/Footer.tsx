@@ -28,7 +28,7 @@ export default function Footer() {
             <ul className="flex justify-center gap-6 !mt-8 md:gap-8 sm:justify-start">
               <li>
                 <Link
-                  href="https://facebook.com"
+                  href="https://www.facebook.com/foryoutravelgroup"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="!text-black transition hover:!text-black/75"
@@ -39,7 +39,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="https://instagram.com"
+                  href="https://www.instagram.com/4u_travelgroup"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="!text-black transition hover:!text-black/75"
@@ -48,7 +48,7 @@ export default function Footer() {
                   <span className="sr-only">Instagram</span>
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link
                   href="https://twitter.com"
                   target="_blank"
@@ -69,7 +69,7 @@ export default function Footer() {
                   <FaYoutube className="w-5 h-5" />
                   <span className="sr-only">YouTube</span>
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
 
@@ -186,7 +186,7 @@ export default function Footer() {
                   <MdLocationOn className="w-4 h-4 text-black mt-0.5" />
                   </div>
                   <address className="not-italic !text-black">
-                    Delma Street, Al Silimah Street, Zone 1, Abu Dhabi, Abu Dhabi, United Arab
+                    Delma Street, Al Silimah Street, Zone 1, Abu Dhabi, Abu Dhabi, United Arab Emirates
                   </address>
                 </li>
               </ul>
