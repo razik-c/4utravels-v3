@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Block admin/Dashboard pages from indexing
+Disallow: /dashboard/
+Disallow: /api/
+
+# Block Next.js internal assets from indexing
+Disallow: /_next/
+Disallow: /__ENV.js
+
+# Optional: if you have staging/test endpoints
+# Disallow: /dev/
+# Disallow: /test/
+
+# Sitemaps (use your real domain)
+Sitemap: https://www.4utravelandtours.com/sitemap.xml
+Sitemap: https://www.4utravelandtours.com/sitemap-images.xml

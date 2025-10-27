@@ -1,4 +1,6 @@
+// app/components/Header.tsx (full code)
 "use client";
+
 import { useEffect, useState } from "react";
 import Dropdown from "./Dropdown";
 import ButtonPrimary from "./ButtonPrimary";
@@ -28,12 +30,41 @@ const menuItem: MenuItem[] = [
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Lock body scroll when drawer is open
+  // Real scroll lock: freeze page position while drawer is open
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = isMenuOpen ? "hidden" : prev || "";
+    const body = document.body;
+    const html = document.documentElement;
+
+    if (isMenuOpen) {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      body.dataset.scrollY = String(scrollY);
+      body.style.position = "fixed";
+      body.style.top = `-${scrollY}px`;
+      body.style.width = "100%";
+      html.classList.add("overflow-hidden");
+    } else {
+      const top = body.style.top;
+      body.style.position = "";
+      body.style.top = "";
+      body.style.width = "";
+      html.classList.remove("overflow-hidden");
+
+      const y = top ? Math.abs(parseInt(top, 10)) : 0;
+      window.scrollTo(0, y);
+      delete body.dataset.scrollY;
+    }
+
     return () => {
-      document.body.style.overflow = prev || "";
+      // cleanup in case component unmounts while open
+      body.style.position = "";
+      body.style.top = "";
+      body.style.width = "";
+      html.classList.remove("overflow-hidden");
+      if (body.dataset.scrollY) {
+        const y = parseInt(body.dataset.scrollY, 10) || 0;
+        window.scrollTo(0, y);
+        delete body.dataset.scrollY;
+      }
     };
   }, [isMenuOpen]);
 
@@ -46,6 +77,12 @@ export default function Header() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [isMenuOpen]);
+
+  // prevent background scroll on overlay just in case
+  const eatScroll = (e: React.UIEvent | React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   return (
     <nav className="py-1 bg-white shadow-sm">
@@ -62,7 +99,7 @@ export default function Header() {
               />
             </Link>
 
-            {/* Desktop search (basic) */}
+            {/* Desktop search */}
             <form method="GET" action="/search" className="hidden lg:block">
               <div className="bg-[#f3f3f6] ps-4 pe-2 relative rounded-full py-1 flex items-center gap-2">
                 <input
@@ -83,9 +120,8 @@ export default function Header() {
                 </select>
                 <button
                   type="submit"
-                  className="mr-1 inline-flex items-center cursor-pointer  rounded-full border border-gray-400 p-2 text-black hover:bg-[#35039A] hover:text-white"
+                  className="mr-1 inline-flex items-center cursor-pointer rounded-full border border-gray-400 p-2 text-black hover:bg-[#35039A] hover:text-white"
                 >
-                  {/* search icon */}
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                     strokeWidth="1.5" stroke="currentColor" className="size-5">
                     <path
@@ -108,7 +144,6 @@ export default function Header() {
               aria-label="Open menu"
               aria-controls="mobile-drawer"
             >
-              {/* hamburger */}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                 strokeWidth={1.5} stroke="currentColor" className="size-7">
                 <path strokeLinecap="round" strokeLinejoin="round"
@@ -133,6 +168,7 @@ export default function Header() {
 
         {/* Right controls (desktop) */}
         <div className="lg:flex gap-4 items-center text-black hidden">
+          {/* Language dropdown optional */}
           {/* {dropDownItem.map((item) =>
             item.children?.length ? (
               <Dropdown key={item.id} item={item} />
@@ -158,7 +194,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile search (basic) */}
+      {/* Mobile search */}
       <div className="container mb-4 lg:hidden mt-1">
         <form method="GET" action="/search">
           <div className="bg-[#f3f3f6] ps-4 pe-2 relative rounded-full w-full py-1 flex justify-between items-center gap-2">
@@ -195,9 +231,12 @@ export default function Header() {
       </div>
 
       {/* === Mobile Drawer (left slide-in) === */}
+
       {/* Overlay */}
       <div
         onClick={() => setIsMenuOpen(false)}
+        onWheel={eatScroll}
+        onTouchMove={eatScroll}
         className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 lg:hidden ${
           isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
@@ -209,23 +248,24 @@ export default function Header() {
         id="mobile-drawer"
         role="dialog"
         aria-modal="true"
-        className={`fixed top-0 left-0 z-50 h-full w-72 max-w-[85vw] bg-white shadow-xl lg:hidden
-          transition-transform duration-300 will-change-transform
+        className={`fixed top-0 left-0 z-50 h-dvh w-72 max-w-[85vw] bg-white shadow-xl lg:hidden
+          transition-transform duration-300 will-change-transform overflow-y-auto
           ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <span className="text-lg font-semibold">Menu</span>
-          <button
-            aria-label="Close menu"
-            onClick={() => setIsMenuOpen(false)}
-            className="p-2"
-          >
-            {/* X icon */}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-              strokeWidth={1.5} stroke="currentColor" className="size-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <div className="sticky top-0 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <div className="flex items-center justify-between p-4 border-b">
+            <span className="text-lg font-semibold">Menu</span>
+            <button
+              aria-label="Close menu"
+              onClick={() => setIsMenuOpen(false)}
+              className="p-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                strokeWidth={1.5} stroke="currentColor" className="size-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col p-4 gap-4">
