@@ -114,8 +114,7 @@ export default function SeeMoreGrid({
             const baseMsg =
               `Hello! I'm interested in this tour:\n\n` +
               `Title: ${title}\n` +
-              (price ? `Price From: ${fmtMoney(price, "AED")}\n` : "") +
-              `Link: ${pageLink}`;
+              (price ? `Price From: ${fmtMoney(price, "AED")}\n` : "");
 
             const waBook = waEnabled
               ? buildWhatsAppLink(
@@ -225,8 +224,7 @@ export default function SeeMoreGrid({
             (Number(v.ratePerHour) > 0
               ? `Rate (Hour): AED ${fmtMoneyCompact(v.ratePerHour)}\n`
               : "") +
-            (v.passengers ? `Seats: ${v.passengers}\n` : "") +
-            `Link: ${pageLink}`;
+            (v.passengers ? `Seats: ${v.passengers}\n` : "");
 
           const waBook = waEnabled
             ? buildWhatsAppLink(
