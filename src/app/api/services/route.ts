@@ -22,10 +22,12 @@ type Body = {
 /** -------- GET -------- */
 export async function GET() {
   try {
-    const rows = await db
-      .select()
-      .from(services)
-      .orderBy(desc(services.createdAt));
+// app/api/services/route.ts (GET)
+const rows = await db
+  .select()
+  .from(services)
+  .orderBy(services.displayOrder, desc(services.createdAt));
+
 
     if (!rows.length) return NextResponse.json([]);
 

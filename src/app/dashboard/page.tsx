@@ -4,11 +4,11 @@
 import * as React from "react";
 import Image from "next/image";
 
+// ---------- Types ----------
 type ProductType = "tour" | "transport";
 type ProductTemplate = "horizontal" | "vertical";
 type PublishStatus = "draft" | "published";
 
-// ---------- Products ----------
 type ProductRow = {
   id: string;
   type: ProductType;
@@ -40,7 +40,6 @@ type ProductRow = {
   updatedAt?: string;
 };
 
-// ---------- Visas ----------
 type VisaBadge = "Popular" | "Best Value" | "New" | null;
 type VisaRow = {
   id: number;
@@ -56,7 +55,6 @@ type VisaRow = {
   updatedAt?: string;
 };
 
-// ---------- Services ----------
 type ServiceRow = {
   id: string;
   title: string;
@@ -69,6 +67,7 @@ type ServiceRow = {
   updatedAt?: string;
 };
 
+// ---------- Utils ----------
 function fmtMoney(n: number | null | undefined, cur = "AED", tail?: string) {
   if (n == null || Number.isNaN(n)) return "-";
   return `${cur} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${tail ?? ""}`;
@@ -89,6 +88,46 @@ function badgePill(badge: VisaBadge) {
   return <span className={`${base} bg-amber-50 text-amber-700`}>{badge}</span>;
 }
 
+function moveItem<T>(arr: T[], index: number, dir: -1 | 1) {
+  const i2 = index + dir;
+  if (i2 < 0 || i2 >= arr.length) return arr;
+  const copy = arr.slice();
+  const tmp = copy[index];
+  copy[index] = copy[i2];
+  copy[i2] = tmp;
+  return copy;
+}
+
+/** Reorder only items that satisfy `inSubset`, keeping others in place. */
+function reorderSubset<T>(rows: T[], inSubset: (r: T) => boolean, indexInSubset: number, dir: -1 | 1) {
+  const subset = rows.filter(inSubset);
+  if (subset.length === 0) return rows;
+
+  const nextSubset = moveItem(subset, indexInSubset, dir);
+  if (nextSubset === subset) return rows;
+
+  // Stitch back: keep non-subset in original relative order; place reordered subset back in order.
+  const result: T[] = [];
+  let si = 0;
+  for (const r of rows) {
+    if (inSubset(r)) {
+      result.push(nextSubset[si++]);
+    } else {
+      result.push(r);
+    }
+  }
+  return result;
+}
+
+async function safeText(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return `${res.status}`;
+  }
+}
+
+// ---------- Component ----------
 export default function ProductsDashboardPage() {
   const [tab, setTab] = React.useState<"All" | ProductType>("All");
 
@@ -97,6 +136,9 @@ export default function ProductsDashboardPage() {
   const [services, setServices] = React.useState<ServiceRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
+
+  const [orderDirty, setOrderDirty] = React.useState({ products: false, services: false, visas: false });
+  const [savingOrder, setSavingOrder] = React.useState({ products: false, services: false, visas: false });
 
   React.useEffect(() => {
     let abort = false;
@@ -143,6 +185,7 @@ export default function ProductsDashboardPage() {
     [rows, tab]
   );
 
+  // ---------- Delete handlers ----------
   async function onDeleteProduct(id: string) {
     if (!confirm("Delete this product? This cannot be undone.")) return;
     const prev = rows;
@@ -155,7 +198,6 @@ export default function ProductsDashboardPage() {
       alert("Delete failed.");
     }
   }
-
   async function onDeleteVisa(id: number) {
     if (!confirm("Delete this visa? This cannot be undone.")) return;
     const prev = visas;
@@ -168,7 +210,6 @@ export default function ProductsDashboardPage() {
       alert("Delete failed.");
     }
   }
-
   async function onDeleteService(id: string) {
     if (!confirm("Delete this service? This cannot be undone.")) return;
     const prev = services;
@@ -182,13 +223,114 @@ export default function ProductsDashboardPage() {
     }
   }
 
+  // ---------- Reorder: Products ----------
+  function moveProduct(id: string, dir: -1 | 1) {
+    if (tab === "All") {
+      setRows((prev) => {
+        const idx = prev.findIndex((r) => r.id === id);
+        if (idx === -1) return prev;
+        const next = moveItem(prev, idx, dir);
+        setOrderDirty((d) => ({ ...d, products: true }));
+        return next;
+      });
+      return;
+    }
+
+    // Reorder only within current type subset; keep others in place.
+    setRows((prev) => {
+      const subset = prev.filter((p) => p.type === tab);
+      const idx = subset.findIndex((p) => p.id === id);
+      if (idx === -1) return prev;
+      const next = reorderSubset(prev, (p) => p.type === tab, idx, dir);
+      setOrderDirty((d) => ({ ...d, products: true }));
+      return next;
+    });
+  }
+
+  async function saveProductsOrder() {
+    setSavingOrder((s) => ({ ...s, products: true }));
+    try {
+      // Always persist the global order across ALL products
+      const ids = rows.map((r) => r.id);
+      const res = await fetch("/api/products/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error(await safeText(res));
+      setOrderDirty((d) => ({ ...d, products: false }));
+    } catch (e) {
+      alert("Saving order failed.");
+    } finally {
+      setSavingOrder((s) => ({ ...s, products: false }));
+    }
+  }
+
+  // ---------- Reorder: Services ----------
+  function moveService(id: string, dir: -1 | 1) {
+    setServices((prev) => {
+      const idx = prev.findIndex((r) => r.id === id);
+      if (idx === -1) return prev;
+      const next = moveItem(prev, idx, dir);
+      setOrderDirty((d) => ({ ...d, services: true }));
+      return next;
+    });
+  }
+
+  async function saveServicesOrder() {
+    setSavingOrder((s) => ({ ...s, services: true }));
+    try {
+      const ids = services.map((s) => s.id);
+      const res = await fetch("/api/services/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error(await safeText(res));
+      setOrderDirty((d) => ({ ...d, services: false }));
+    } catch (e) {
+      alert("Saving order failed.");
+    } finally {
+      setSavingOrder((s) => ({ ...s, services: false }));
+    }
+  }
+
+  // ---------- Reorder: Visas ----------
+  function moveVisa(id: number, dir: -1 | 1) {
+    setVisas((prev) => {
+      const idx = prev.findIndex((r) => r.id === id);
+      if (idx === -1) return prev;
+      const next = moveItem(prev, idx, dir);
+      setOrderDirty((d) => ({ ...d, visas: true }));
+      return next;
+    });
+  }
+
+  async function saveVisasOrder() {
+    setSavingOrder((s) => ({ ...s, visas: true }));
+    try {
+      const ids = visas.map((v) => v.id);
+      const res = await fetch("/api/visas/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error(await safeText(res));
+      setOrderDirty((d) => ({ ...d, visas: false }));
+    } catch (e) {
+      alert("Saving order failed.");
+    } finally {
+      setSavingOrder((s) => ({ ...s, visas: false }));
+    }
+  }
+
   return (
     <main className="px-5 md:container py-6 space-y-8">
       {/* PRODUCTS PANEL */}
       <div className="rounded-2xl bg-white/70 backdrop-blur border border-gray-100 p-4 sm:p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h4 className="font-semibold">Products</h4>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {(["All", "tour", "transport"] as const).map((t) => {
               const active = tab === t;
               return (
@@ -204,6 +346,14 @@ export default function ProductsDashboardPage() {
                 </button>
               );
             })}
+            <button
+              onClick={saveProductsOrder}
+              disabled={savingOrder.products || !orderDirty.products}
+              className="inline-flex items-center rounded-xl bg-black text-white px-3 py-2 text-sm disabled:opacity-50"
+              title="Persist current order"
+            >
+              {savingOrder.products ? "Saving…" : "Save Order"}
+            </button>
           </div>
         </div>
 
@@ -254,17 +404,17 @@ export default function ProductsDashboardPage() {
                   )}
                 </div>
 
-                <div className="col-span-6 sm:col-span-3">
+                <div className="col-span-2">
                   <div className="flex items-center gap-2">
                     <span className={statusPill(p.status)}>{p.status}</span>
                     <span className={typePill(p.type)}>{p.type}</span>
                   </div>
                 </div>
 
-                <div className="col-span-6 sm:col-span-1 sm:text-left text-right">
+                <div className="col-span-2 sm:text-left text-right">
                   {p.type === "tour" ? (
                     <div className="text-sm font-medium">
-                      {fmtMoney(p.priceFrom, p.currency)} <span className="text-xs text-black/60">from</span>
+                      {fmtMoney(p.priceFrom, p.currency)} 
                     </div>
                   ) : (
                     <div className="text-sm font-medium">
@@ -281,7 +431,21 @@ export default function ProductsDashboardPage() {
                   )}
                 </div>
 
-                <div className="hidden sm:flex col-span-1 justify-end">
+                <div className="hidden sm:flex col-span-1 justify-end gap-2">
+                  <button
+                    onClick={() => moveProduct(p.id, -1)}
+                    className="rounded-md border px-2 py-1 text-xs"
+                    title="Move up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveProduct(p.id, +1)}
+                    className="rounded-md border px-2 py-1 text-xs"
+                    title="Move down"
+                  >
+                    ↓
+                  </button>
                   <button
                     onClick={() => onDeleteProduct(p.id)}
                     className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
@@ -299,6 +463,13 @@ export default function ProductsDashboardPage() {
       <div className="rounded-2xl bg-white/70 backdrop-blur border border-gray-100 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold">Services</h4>
+          <button
+            onClick={saveServicesOrder}
+            disabled={savingOrder.services || !orderDirty.services}
+            className="inline-flex items-center rounded-xl bg-black text-white px-3 py-2 text-sm disabled:opacity-50"
+          >
+            {savingOrder.services ? "Saving…" : "Save Order"}
+          </button>
         </div>
 
         <div className="mt-6 grid grid-cols-12 px-3 text-xs font-semibold text-black/60">
@@ -344,7 +515,21 @@ export default function ProductsDashboardPage() {
                   <span className={statusPill(s.status)}>{s.status}</span>
                 </div>
 
-                <div className="hidden sm:flex col-span-1 justify-end">
+                <div className="hidden sm:flex col-span-1 justify-end gap-2">
+                  <button
+                    onClick={() => moveService(s.id, -1)}
+                    className="rounded-md border px-2 py-1 text-xs"
+                    title="Move up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveService(s.id, +1)}
+                    className="rounded-md border px-2 py-1 text-xs"
+                    title="Move down"
+                  >
+                    ↓
+                  </button>
                   <button
                     onClick={() => onDeleteService(s.id)}
                     className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
@@ -362,6 +547,13 @@ export default function ProductsDashboardPage() {
       <div className="rounded-2xl bg-white/70 backdrop-blur border border-gray-100 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold">Visas</h4>
+          <button
+            onClick={saveVisasOrder}
+            disabled={savingOrder.visas || !orderDirty.visas}
+            className="inline-flex items-center rounded-xl bg-black text-white px-3 py-2 text-sm disabled:opacity-50"
+          >
+            {savingOrder.visas ? "Saving…" : "Save Order"}
+          </button>
         </div>
 
         <div className="mt-6 grid grid-cols-12 px-3 text-xs font-semibold text-black/60">
@@ -373,13 +565,13 @@ export default function ProductsDashboardPage() {
         </div>
         <div className="mt-2 h-px w-full bg-gray-100" />
 
-        {loading && <div className="px-3 py-6 text-sm text_black/60">Loading…</div>}
+        {loading && <div className="px-3 py-6 text-sm text-black/60">Loading…</div>}
         {err && !loading && <div className="px-3 py-6 text-sm text-red-600">{err}</div>}
 
         {!loading && !err && (
           <ul className="divide-y divide-gray-100">
             {visas.map((v) => (
-              <li key={v.id} className="grid grid-cols-12 items_center px-3 py-4 gap-3">
+              <li key={v.id} className="grid grid-cols-12 items-center px-3 py-4 gap-3">
                 <div className="col-span-12 sm:col-span-6">
                   <div className="truncate text-sm font-semibold">{v.title}</div>
                   <div className="truncate text-xs text-black/60">{v.slug}</div>
@@ -407,7 +599,21 @@ export default function ProductsDashboardPage() {
                   </div>
                 </div>
 
-                <div className="hidden sm:flex col-span-1 justify-end">
+                <div className="hidden sm:flex col-span-1 justify-end gap-2">
+                  <button
+                    onClick={() => moveVisa(v.id, -1)}
+                    className="rounded-md border px-2 py-1 text-xs"
+                    title="Move up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveVisa(v.id, +1)}
+                    className="rounded-md border px-2 py-1 text-xs"
+                    title="Move down"
+                  >
+                    ↓
+                  </button>
                   <button
                     onClick={() => onDeleteVisa(v.id)}
                     className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
@@ -422,13 +628,4 @@ export default function ProductsDashboardPage() {
       </div>
     </main>
   );
-}
-
-// small helper
-async function safeText(res: Response) {
-  try {
-    return await res.text();
-  } catch {
-    return `${res.status}`;
-  }
 }

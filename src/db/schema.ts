@@ -18,8 +18,14 @@ import {
 import { relations, sql } from "drizzle-orm";
 
 export const productTypeEnum = pgEnum("product_type", ["tour", "transport"]);
-export const productTemplateEnum = pgEnum("product_template", ["horizontal", "vertical"]);
-export const publishStatusEnum = pgEnum("publish_status", ["draft", "published"]);
+export const productTemplateEnum = pgEnum("product_template", [
+  "horizontal",
+  "vertical",
+]);
+export const publishStatusEnum = pgEnum("publish_status", [
+  "draft",
+  "published",
+]);
 
 export const badgeEnum = pgEnum("visa_badge", ["Popular", "Best Value", "New"]);
 export const sectionKindEnum = pgEnum("section_kind", ["list", "text"]);
@@ -41,7 +47,7 @@ export const products = pgTable(
 
     type: productTypeEnum("type").notNull(),
     template: productTemplateEnum("template").default("horizontal").notNull(),
-
+    displayOrder: integer("display_order").notNull().default(0),
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     description: text("description"),
@@ -89,7 +95,9 @@ export const productImages = pgTable("product_images", {
 
 /* ------------ LEGACY / OTHER TABLES (unchanged) ------------ */
 export const tourPackages = pgTable("tour_packages", {
-  id: integer("id").primaryKey().default(sql`generated always as identity`),
+  id: integer("id")
+    .primaryKey()
+    .default(sql`generated always as identity`),
   slug: varchar("slug", { length: 160 }).notNull().unique(),
   title: varchar("title", { length: 200 }).notNull(),
   shortDescription: varchar("short_description", { length: 500 }),
@@ -151,11 +159,18 @@ export const visas = pgTable(
       .default("AED"),
     isActive: boolean("is_active").notNull().default(true),
     displayOrder: integer("display_order").notNull().default(100),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
-    activeOrderIdx: index("ix_visas_active_order").on(t.isActive, t.displayOrder),
+    activeOrderIdx: index("ix_visas_active_order").on(
+      t.isActive,
+      t.displayOrder
+    ),
   })
 );
 
@@ -197,7 +212,10 @@ export const visaSectionItems = pgTable(
     id: bigserial("id", { mode: "number" }).primaryKey(),
     sectionId: bigint("section_id", { mode: "number" })
       .notNull()
-      .references(() => visaSections.id, { onDelete: "cascade", onUpdate: "cascade" }),
+      .references(() => visaSections.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
     sortOrder: integer("sort_order").notNull().default(100),
     text: varchar("text", { length: 300 }).notNull(),
   },
@@ -212,20 +230,33 @@ export const bookings = pgTable(
     id: bigserial("id", { mode: "number" }).primaryKey(),
     visaId: bigint("visa_id", { mode: "number" })
       .notNull()
-      .references(() => visas.id, { onDelete: "restrict", onUpdate: "cascade" }),
+      .references(() => visas.id, {
+        onDelete: "restrict",
+        onUpdate: "cascade",
+      }),
     customerName: varchar("customer_name", { length: 120 }).notNull(),
     customerEmail: varchar("customer_email", { length: 160 }),
     customerPhone: varchar("customer_phone", { length: 40 }),
     source: bookingSourceEnum("source").notNull().default("web"),
     status: bookingStatusEnum("status").notNull().default("initiated"),
-    quotedAmount: numeric("quoted_amount", { precision: 10, scale: 2 }).notNull().default("0.00"),
+    quotedAmount: numeric("quoted_amount", { precision: 10, scale: 2 })
+      .notNull()
+      .default("0.00"),
     currency: char("currency", { length: 3 }).notNull().default("AED"),
     notes: text("notes"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
-    visaStatusIdx: index("ix_bookings_visa_status").on(t.visaId, t.status, t.createdAt),
+    visaStatusIdx: index("ix_bookings_visa_status").on(
+      t.visaId,
+      t.status,
+      t.createdAt
+    ),
   })
 );
 
@@ -235,17 +266,21 @@ export const bookingDocuments = pgTable(
     id: bigserial("id", { mode: "number" }).primaryKey(),
     bookingId: bigint("booking_id", { mode: "number" })
       .notNull()
-      .references(() => bookings.id, { onDelete: "cascade", onUpdate: "cascade" }),
+      .references(() => bookings.id, {
+        onDelete: "cascade",
+        onUpdate: "cascade",
+      }),
     kind: varchar("kind", { length: 60 }).notNull(),
     fileUrl: varchar("file_url", { length: 600 }).notNull(),
     mimeType: varchar("mime_type", { length: 120 }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => ({
     bookingIdx: index("ix_docs_booking").on(t.bookingId, t.kind),
   })
 );
-
 
 export const services = pgTable("services", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -253,19 +288,28 @@ export const services = pgTable("services", {
   shortDescription: text("short_description"),
   longDescription: text("long_description"),
   heroKey: text("hero_key"),
+   displayOrder: integer("display_order").notNull().default(0),
   tags: text("tags"),
   status: varchar("status", { length: 16 }).default("draft").notNull(), // 'draft' | 'published'
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const serviceImages = pgTable("service_images", {
   id: uuid("id").defaultRandom().primaryKey(),
-  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id")
+    .notNull()
+    .references(() => services.id, { onDelete: "cascade" }),
   r2Key: text("r2_key").notNull(),
   position: integer("position"),
   isHero: boolean("is_hero").default(false).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const visasRelations = relations(visas, ({ many }) => ({

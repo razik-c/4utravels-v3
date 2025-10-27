@@ -74,7 +74,7 @@ export default function Footer() {
           </div>
 
           {/* Link columns */}
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:col-span-2 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:col-span-2 md:grid-cols-3">
             {/* Tours */}
             <div className="text-start sm:text-left">
               <p className="text-lg font-medium !text-black">Tours</p>
@@ -116,46 +116,6 @@ export default function Footer() {
               </nav>
             </div>
 
-            {/* Destinations */}
-            <div className="text-start sm:text-left">
-              <p className="text-lg font-medium !text-black">Destinations</p>
-              <nav className="mt-8">
-                <ul className="!space-y-4 text-sm">
-                  <li>
-                    <Link
-                      href="/destinations/uae"
-                      className="!text-black hover:!text-black/75 no-underline"
-                    >
-                      UAE
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/destinations/azerbaijan"
-                      className="!text-black hover:!text-black/75 no-underline"
-                    >
-                      Azerbaijan
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/destinations/kazakhstan"
-                      className="!text-black hover:!text-black/75 no-underline"
-                    >
-                      Kazakhstan
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/destinations/armenia"
-                      className="!text-black hover:!text-black/75 no-underline"
-                    >
-                      Armenia
-                    </Link>
-                  </li>
-                </ul>
-              </nav>
-            </div>
 
             {/* Helpful Links */}
             <div className="text-start sm:text-left">
@@ -194,28 +154,39 @@ export default function Footer() {
             <div className="text-start sm:text-left">
               <p className="text-lg font-medium !text-black">Contact Us</p>
               <ul className="!mt-8 !space-y-4 text-sm">
-                <li className="flex items-start justify-start sm:justify-start gap-1.5">
+                <li className="flex items-start justify-start sm:justify-start gap-2">
                   <MdEmail className="w-4 h-4 text-black" />
                   <Link
-                    href="mailto:info@4utravels.com"
+                    href="mailto:info4utransport@gmail.com"
                     className="!text-black hover:!text-black/75 no-underline"
                   >
-                    info@4utravels.com
+                    info4utransport@gmail.com
+                  </Link>
+                </li>
+                 <li className="flex items-start justify-start sm:justify-start gap-1.5">
+                  <MdEmail className="w-4 h-4 text-black" />
+                  <Link
+                    href="mailto:jamsheed4utransport@gmail.com"
+                    className="!text-black hover:!text-black/75 no-underline"
+                  >
+                    jamsheed4utransport@gmail.com
                   </Link>
                 </li>
                 <li className="flex items-center justify-start sm:justify-start gap-1.5">
                   <MdPhone className="w-4 h-4 text-black" />
                   <Link
-                    href="tel:+971500000000"
+                    href="tel:+971558381449"
                     className="!text-black hover:!text-black/75 no-underline"
                   >
-                    +971 50 000 0000
+                    +971 55 838 1449
                   </Link>
                 </li>
                 <li className="flex items-start justify-start sm:justify-start gap-1.5">
+                  <div className="w-fit">
                   <MdLocationOn className="w-4 h-4 text-black mt-0.5" />
+                  </div>
                   <address className="not-italic !text-black">
-                    Business Bay, Dubai, UAE
+                    Delma Street, Al Silimah Street, Zone 1, Abu Dhabi, Abu Dhabi, United Arab
                   </address>
                 </li>
               </ul>

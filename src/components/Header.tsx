@@ -75,7 +75,7 @@ export default function Header() {
                 />
                 <select
                   name="type"
-                  className="bg-transparent text-sm max-w-[20px] outline-none"
+                  className="hidden bg-transparent text-sm max-w-[20px] outline-none"
                   aria-label="Result type"
                   defaultValue=""
                 >
@@ -173,7 +173,7 @@ export default function Header() {
             <div className="flex gap-2">
               <select
                 name="type"
-                className="bg-transparent text-sm max-w-[20px] outline-none"
+                className="hidden bg-transparent text-sm max-w-[20px] outline-none"
                 aria-label="Result type"
                 defaultValue=""
               >

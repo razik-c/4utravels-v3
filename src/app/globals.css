@@ -5,6 +5,14 @@
 
 @source "../../node_modules/nrc-next-carousel/dist";
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
 .my-logo {
   font-family: var(--font-borel), cursive;

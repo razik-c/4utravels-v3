@@ -116,7 +116,7 @@ export default function PopularTransportsCarousel({
 
   return (
     <section className="px-5 md:container">
-      <div className="flex items-center justify-between px-2">
+      <div className="flex items-center justify-between">
         <h5 className="text-center">Transportation Services</h5>
         <Link
           href={seeMoreHref}

@@ -43,10 +43,10 @@ type Body = {
 /** -------- GET -------- */
 export async function GET() {
   try {
-    const rows = await db
-      .select()
-      .from(products)
-      .orderBy(desc(products.createdAt));
+const rows = await db
+  .select()
+  .from(products)
+  .orderBy(products.displayOrder, desc(products.createdAt));
 
     if (!rows.length) return NextResponse.json([]);
 

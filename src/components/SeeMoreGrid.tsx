@@ -93,7 +93,7 @@ export default function SeeMoreGrid({
 
   return (
     <section className="px-5 md:container">
-      <div className="flex items-center justify-between px-2">
+      <div className="flex items-center justify-between">
         <h5 className="text-center">
           {heading ?? (mode === "tours" ? "All Tours" : "All Transports")}
         </h5>

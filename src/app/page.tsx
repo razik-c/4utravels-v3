@@ -111,22 +111,22 @@ async function attachTourHero(rows: ProductRow[]): Promise<ProductRow[]> {
 const services = [
   {
     href: "/transports/all",
-    img: "/vehicle.png",
+    img: "/car.svg",
     label: "Transportations",
   },
   {
     href: "/visas",
-    img: "/visa.png",
+    img: "/note.svg",
     label: "Visa Services",
   },
   {
     href: "/tours/all",
-    img: "/holiday.png",
+    img: "/baggage.svg",
     label: "Tour Packages",
   },
   {
     href: "",
-    img: "/plane.png",
+    img: "/tickets.svg",
     label: "Ticketing",
   },
 ];
@@ -135,7 +135,6 @@ export default async function Home() {
   const tours = await getTours(24);
   const toursWithImg = await attachTourHero(tours as ProductRow[]);
 
-  // ✅ show all tours (ignore template)
   const allToursImg = toursWithImg.slice(0, 12);
 
   return (
@@ -144,22 +143,35 @@ export default async function Home() {
         <HeroCarousel />
       </section>
 
-      {/* --- Our Services --- */}
-      <section>
-        <div className="container mt-8">
-          <div className="grid lg:flex justify-center items-center grid-cols-12 mt-5 gap-5 lg:gap-12">
-            {services.map((s) => (
-              <Link
-                key={s.href}
-                href={s.href}
-                className="lg:min-w-[180px] col-span-6 lg:col-span-2 flex flex-col justify-center items-center p-4 rounded-md bg-white shadow-sm hover:shadow-md hover:scale-[1.02] transition-transform duration-150"
-              >
-                <Image src={s.img} alt={s.label} width={100} height={100} />
-                <h6 className="mt-4 text-center text-[16px] font-medium">
-                  {s.label}
-                </h6>
-              </Link>
-            ))}
+      <section className="mt-8 lg:container">
+        <h5 className="text-start mb-4 px-5 lg:px-0">Categories</h5>
+
+        {/* breakout from container horizontally */}
+        <div className="mx-5 lg:mx-0">
+          <div className="no-scrollbar overflow-x-auto overflow-y-visible py-3 -my-3">
+            <div className="flex gap-4 lg:grid lg:grid-cols-12 lg:gap-6 lg:overflow-visible">
+              {services.map((s) => (
+                <Link
+                  key={s.href}
+                  href={s.href}
+                  className="
+              min-w-[150px] lg:min-w-[200px]
+              col-span-6 lg:col-span-2
+              flex items-center gap-2 lg:gap-4
+              p-2 rounded-sm bg-white shadow-sm
+              flex-shrink-0
+              transition-transform duration-150
+              hover:scale-[1.02] hover:shadow-md
+              relative hover:z-10
+            "
+                >
+                  <div className="bg-[#35039A] p-2 rounded-md">
+                    <Image src={s.img} alt={s.label} width={28} height={28} />
+                  </div>
+                  <p className="!text-[15px]">{s.label}</p>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
