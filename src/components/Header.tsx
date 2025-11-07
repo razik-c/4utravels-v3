@@ -23,8 +23,6 @@ const menuItem: MenuItem[] = [
   { id: "visa", title: "Visa", route: "/visas" },
   { id: "packages", title: "Packages", route: "/tours/all" },
   { id: "transportation", title: "Transports", route: "/transports/all" },
-  { id: "about", title: "About", route: "/" },
-  { id: "gallery", title: "Gallery", route: "/" },
 ];
 
 export default function Header() {
@@ -190,7 +188,7 @@ export default function Header() {
             }
             href={"/sign-in"}
           />
-          <ButtonSecondary text={"Sign Up"} href={""} />
+          {/* <ButtonSecondary text={"Sign Up"} href={""} /> */}
         </div>
       </div>
 

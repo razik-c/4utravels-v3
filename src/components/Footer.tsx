@@ -76,7 +76,7 @@ export default function Footer() {
           {/* Link columns */}
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:col-span-2 md:grid-cols-3">
             {/* Tours */}
-            <div className="text-start sm:text-left">
+            {/* <div className="text-start sm:text-left">
               <p className="text-lg font-medium !text-black">Tours</p>
               <nav className="mt-8">
                 <ul className="!space-y-4 text-sm">
@@ -114,11 +114,11 @@ export default function Footer() {
                   </li>
                 </ul>
               </nav>
-            </div>
+            </div> */}
 
 
             {/* Helpful Links */}
-            <div className="text-start sm:text-left">
+            {/* <div className="text-start sm:text-left">
               <p className="text-lg font-medium !text-black">Helpful Links</p>
               <nav className="mt-8">
                 <ul className="!space-y-4 text-sm">
@@ -148,7 +148,7 @@ export default function Footer() {
                   </li>
                 </ul>
               </nav>
-            </div>
+            </div> */}
 
             {/* Contact Us */}
             <div className="text-start sm:text-left">
@@ -201,7 +201,7 @@ export default function Footer() {
               <div>
                 <span className="block sm:inline">All rights reserved.</span>
               </div>
-              <div>
+              {/* <div>
                 <Link
                   href="/terms"
                   className="inline-block !text-black underline hover:!text-black/75 text-[12px]"
@@ -216,7 +216,7 @@ export default function Footer() {
                 >
                   Privacy Policy
                 </Link>
-              </div>
+              </div> */}
             </div>
             <p className="mt-4 text-sm !text-gray-500 sm:order-first sm:mt-0 text-center">
               &copy; {new Date().getFullYear()} 4U Travels
