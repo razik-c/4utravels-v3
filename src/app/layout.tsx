@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="canonical" href={`${SITE_URL}${pathname || ""}`} />
 
         {/* Favicon / Icons */}
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/logo.png" />
         <link rel="apple-touch-icon" href="/logo.png" />
         <link rel="icon" type="image/png" href="/logo.png" sizes="192x192" />
 
