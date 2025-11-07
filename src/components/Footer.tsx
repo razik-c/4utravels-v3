@@ -201,6 +201,9 @@ export default function Footer() {
               <div>
                 <span className="block sm:inline">All rights reserved.</span>
               </div>
+                 <div>
+                <span className="block sm:inline">Made by Razik</span>
+              </div>
               {/* <div>
                 <Link
                   href="/terms"
