@@ -68,7 +68,7 @@ export default function MobilePromoCarousel() {
       <div className="w-full space-y-10 ">
         <div className="relative h-[420px] overflow-hidden bg-gradient-to-r from-gray-50 to-white">
           <Image
-            src="/tour.jpg"
+            src="/tour.png"
             alt="Premium Transport Services"
             fill
             className="object-cover object-center"
